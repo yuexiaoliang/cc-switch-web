@@ -4,10 +4,10 @@ Headless Web derivative of [cc-switch](https://github.com/farion1231/cc-switch).
 Runs on a server with no GUI and serves the upstream provider-management UI
 in any modern browser over HTTP.
 
-This README is the operational cheat sheet. The full design notes ��
-architecture decisions, dispatch-table rationale, the upstream-merge
-policy, and the local workarounds the upstream-private types forced
-into the adapter �� live in [`.ccsm/DEVELOPMENT.md`](./.ccsm/DEVELOPMENT.md).
+This README is the operational cheat sheet. The full design notes
+(architecture decisions, dispatch-table rationale, upstream-merge
+policy, and the local workarounds the upstream-private types forced)
+live in [`.ccsm/DEVELOPMENT.md`](./.ccsm/DEVELOPMENT.md).
 
 > **Desktop users: use the original [cc-switch](https://github.com/farion1231/cc-switch).**
 > This headless derivative is a stop-gap for server deployments. Its lifecycle
@@ -132,3 +132,4 @@ matching binary from the release that carries the same tag.
 ## License
 
 MIT (inherited from upstream).
+
