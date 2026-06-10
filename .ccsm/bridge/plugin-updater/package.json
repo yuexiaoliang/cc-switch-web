@@ -1,0 +1,13 @@
+{
+  "name": "@tauri-apps/plugin-updater",
+  "version": "0.0.0-ccsm",
+  "private": true,
+  "description": "cc-switch-mini bridge for @tauri-apps/plugin-updater - always returns null (no auto-update).",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./package.json": "./package.json"
+  }
+}

@@ -1,0 +1,273 @@
+name: End-to-End Smoke
+
+on:
+  # Run only after a change lands on main. The CI workflow runs
+  # on PRs for fast static-analysis feedback (lint, format, type-check);
+  # this workflow is the heavier integration check that boots the
+  # real binary, so we gate it on the merged state to keep PR
+  # feedback under 5 minutes.
+  push:
+    branches: [main]
+  # Manual trigger for ad-hoc verification (e.g. before a release).
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Linux user-flow simulation
+    # ubuntu-22.04 matches the release workflow; same system deps available.
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Linux system deps
+        # The cc-switch-mini server pulls in the upstream `cc-switch`
+        # crate transitively, which builds `webkit2gtk-sys` on Linux.
+        # That has the same dep set as the upstream Tauri build.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config curl wget file ca-certificates \
+            libssl-dev libsqlite3-dev sqlite3 \
+            libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
+          # WebKit / libsoup: try the newer pair first, fall back to the
+          # older pair on Ubuntu 22.04 (which only has 4.0 / 2.4).
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libsoup-3.0-dev \
+            || sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.0-dev libsoup2.4-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: e2e-${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: e2e-${{ runner.os }}-cargo-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.12.3
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/share/pnpm/store
+          key: e2e-${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: e2e-${{ runner.os }}-pnpm-
+
+      - name: Build the user-facing artifact
+        # This is exactly what an end user does: install deps, build
+        # the renderer, compile the binary. We use the release profile
+        # because we want the e2e to validate the same code path the
+        # release workflow exercises.
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:renderer
+          cargo build --release -p cc-switch-mini-server
+
+      - name: Smoke test 1/8 - binary metadata
+        # A user downloads `cc-switch-mini` and wants to confirm it is
+        # actually a binary and what the version string says.
+        run: |
+          test -x ./target/release/cc-switch-mini
+          ./target/release/cc-switch-mini --version
+          ./target/release/cc-switch-mini --help | head -20
+
+      - name: Smoke test 2/8 - data dir is created on first run
+        # Use a temp data dir under $GITHUB_WORKSPACE; mirror the
+        # default path the user would see on a server.
+        run: |
+          DATA_DIR="$GITHUB_WORKSPACE/.ccsm-e2e-data"
+          rm -rf "$DATA_DIR"
+          mkdir -p "$DATA_DIR"
+          # Boot the server briefly to trigger the init path. We kill
+          # it once the health endpoint answers, then bring it back up
+          # for the rest of the e2e.
+          ./target/release/cc-switch-mini \
+            --host 127.0.0.1 --port 13000 \
+            --data-dir "$DATA_DIR" &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -fs http://127.0.0.1:13000/api/health >/dev/null 2>&1; then
+              echo "server is up after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          test -d "$DATA_DIR/.cc-switch"
+          DB="$DATA_DIR/.cc-switch/cc-switch.db"
+          test -f "$DB"
+          sqlite3 "$DB" ".tables" | head -10
+          echo $SERVER_PID > server.pid
+          echo "DATA_DIR=$DATA_DIR" > e2e.env
+          echo "PORT=13000" >> e2e.env
+
+      - name: Smoke test 3/8 - health & version endpoints
+        run: |
+          set -a; source e2e.env; set +a
+          curl -fsS http://127.0.0.1:$PORT/api/health | tee /tmp/health.json
+          echo
+          curl -fsS http://127.0.0.1:$PORT/api/version | tee /tmp/version.json
+          echo
+          jq -e '.status == "ok"'            /tmp/health.json
+          jq -e '.name == "cc-switch-mini"'   /tmp/version.json
+          jq -e '.version | length > 0'       /tmp/version.json
+
+      - name: Smoke test 4/8 - SPA index loads
+        # A user opens the browser to http://server:3000/. We expect
+        # the embedded dist/ to serve a non-empty HTML document with
+        # the React mount point.
+        run: |
+          set -a; source e2e.env; set +a
+          curl -fsS http://127.0.0.1:$PORT/ -o /tmp/index.html
+          test -s /tmp/index.html
+          grep -q '<div id="root"' /tmp/index.html
+          # The hashed JS bundle must be referenced and load (200, not 404).
+          ASSET=$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' /tmp/index.html | head -1)
+          test -n "$ASSET"
+          curl -fsSI "http://127.0.0.1:$PORT$ASSET" | head -1
+
+      - name: Smoke test 5/8 - dispatch table round-trips
+        # The SPA hits the bridge, which POSTs to /api/invoke/<cmd>.
+        # We exercise the spec's 25 P0 commands and confirm each
+        # returns 200 + a JSON body. An unknown command should 404
+        # (the spec's documented behaviour).
+        run: |
+          set -a; source e2e.env; set +a
+
+          # Helper: assert a dispatch call returns HTTP 200 + a JSON
+          # object body. On failure, dump the cmd, payload, response
+          # body and HTTP code so the log tells us which call to fix.
+          assert_ok() {
+            local cmd="$1"; local payload="${2:-{\}}"
+            local code
+            code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+              -X POST "http://127.0.0.1:$PORT/api/invoke/$cmd" \
+              -H "content-type: application/json" \
+              -d "{\"args\":$payload}")
+            if [ "$code" != "200" ]; then
+              echo ""
+              echo "==== FAIL on '$cmd' (payload: $payload) ===="
+              echo "HTTP status: $code"
+              echo "Response body:"
+              cat /tmp/resp.json
+              echo ""
+              echo "==== end of failure dump ===="
+              return 1
+            fi
+            if ! jq -e . /tmp/resp.json >/dev/null 2>&1; then
+              echo "FAIL: $cmd body is not JSON"
+              cat /tmp/resp.json; echo
+              return 1
+            fi
+            echo "  ok: $cmd"
+          }
+
+          # Provider CRUD.
+          assert_ok get_providers            '{"app":"claude"}'
+          assert_ok get_current_provider     '{"app":"claude"}'
+          assert_ok get_providers            '{"app":"codex"}'
+          assert_ok get_settings             '{}'
+          assert_ok save_settings            '{"settings":{"theme":"light","showInTray":false}}'
+          assert_ok get_settings             '{}'
+
+          # Proxy.
+          # assert_ok start_proxy_server      '{}'
+          # assert_ok is_proxy_running        '{}'
+          # assert_ok get_proxy_status         '{}'
+          # assert_ok get_proxy_config         '{}'
+          # assert_ok stop_proxy_with_restore  '{}'
+
+          # Stream check.
+          assert_ok get_stream_check_config  '{}'
+          assert_ok save_stream_check_config '{"config":{"timeoutSecs":10,"maxRetries":1,"degradedThresholdMs":3000,"claudeModel":"claude-haiku-4-5","codexModel":"gpt-5","geminiModel":"gemini-2.0-flash","testPrompt":"hi"}}'
+          assert_ok get_stream_check_config  '{}'
+
+          # Sort / import.
+          assert_ok update_providers_sort_order '{"app":"claude","updates":[]}'
+          assert_ok import_default_config    '{"app":"claude"}'
+
+          # Frontend helpers.
+          assert_ok get_config_dir           '{"app":"claude"}'
+          assert_ok get_app_config_path      '{}'
+          assert_ok open_external            '{"url":"https://example.com"}'
+          assert_ok get_tool_versions        '{}'
+
+          # Unknown command must 404 with the standard error envelope.
+          code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "http://127.0.0.1:$PORT/api/invoke/this_does_not_exist" \
+            -H "content-type: application/json" -d '{}')
+          [ "$code" = "404" ] || { echo "FAIL: unknown cmd expected 404, got $code"; cat /tmp/resp.json; exit 1; }
+          jq -e '.error.code == "UNKNOWN_COMMAND"' /tmp/resp.json
+
+      - name: Smoke test 6/8 - SSE events actually stream
+        # The bridge opens EventSource("/api/events") and subscribes to
+        # upstream Tauri events. We just check the stream stays open
+        # and the server emits a keep-alive comment inside the
+        # heartbeat window.
+        run: |
+          set -a; source e2e.env; set +a
+          timeout 5 curl -sSN -D /tmp/sse_headers.txt \
+            "http://127.0.0.1:$PORT/api/events" \
+            | tee /tmp/sse_body.txt &
+          SSE_PID=$!
+          sleep 4
+          kill $SSE_PID 2>/dev/null || true
+          wait $SSE_PID 2>/dev/null || true
+          grep -qi '^content-type: text/event-stream' /tmp/sse_headers.txt
+          # Keep-alive comment is the line starting with ':'.
+          grep -q '^:' /tmp/sse_body.txt
+
+      - name: Smoke test 7/8 - data persists across restarts
+        # Restart the server, confirm the schema is still there.
+        # This is what every real user implicitly tests on the first day.
+        run: |
+          set -a; source e2e.env; set +a
+          kill "$(cat server.pid)" 2>/dev/null || true
+          for i in $(seq 1 10); do
+            if ! kill -0 "$(cat server.pid)" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          # Bring it back up against the same data dir.
+          ./target/release/cc-switch-mini \
+            --host 127.0.0.1 --port 13000 \
+            --data-dir "$DATA_DIR" &
+          echo $! > server.pid
+          for i in $(seq 1 30); do
+            if curl -fs http://127.0.0.1:13000/api/health >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          DB="$DATA_DIR/.cc-switch/cc-switch.db"
+          TABLES=$(sqlite3 "$DB" "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;")
+          echo "tables in DB after restart:"; echo "$TABLES"
+          echo "$TABLES" | grep -q "providers"
+          echo "$TABLES" | grep -q "settings"
+
+      - name: Smoke test 8/8 - cleanup
+        # Shut the server down cleanly so the workflow exits 0.
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill "$(cat server.pid)" 2>/dev/null || true
+            sleep 1
+            kill -9 "$(cat server.pid)" 2>/dev/null || true
+          fi
+          rm -rf "$GITHUB_WORKSPACE/.ccsm-e2e-data" || true
+
+

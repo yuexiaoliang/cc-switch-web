@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "src-tauri",
+    ".ccsm/server",
+]
+
+# Shared metadata; individual crates pin their own versions.
+[workspace.package]
+version = "3.16.2"
+edition = "2021"
+rust-version = "1.85.0"
+license = "MIT"
+authors = ["Jason Young", "cc-switch-mini contributors"]
+repository = "https://github.com/yuexiaoliang/cc-switch-mini"
+
+# Optimise release binaries; the embedded server is a long-running process so
+# we keep LTO and codegen-units=1 to squeeze startup + memory footprint.
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = "s"
+panic = "unwind"
+strip = "symbols"

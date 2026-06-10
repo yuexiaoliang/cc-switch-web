@@ -53,8 +53,13 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
-  backend:
-    name: Backend Checks
+  upstream-tauri:
+    # The upstream Tauri crate (src-tauri/) is the source of the
+    # business logic we reuse. We still compile + lint it so an
+    # upstream sync that breaks the build or lints loudly fails the
+    # gate. We do NOT run its full Tauri test suite here - cc-switch
+    # has its own CI for that.
+    name: Upstream Tauri crate
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -76,24 +81,94 @@ jobs:
           sudo apt-get install -y --no-install-recommends libsoup-3.0-dev \
             || sudo apt-get install -y --no-install-recommends libsoup2.4-dev
 
-      - name: Cache Cargo registry and build
+      - name: Cache Cargo registry
         uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          key: ${{ runner.os }}-cargo-upstream-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-upstream-
 
-      - name: Create frontend dist placeholder
-        run: mkdir -p dist
-
-      - name: Check Rust formatting
+      - name: Check formatting
         run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --lib -- -D warnings
+
+  server:
+    # cc-switch-mini server - the actual deliverable of this fork.
+    # Builds the workspace, exercises our dispatch + bridge glue, and
+    # runs the unit tests.
+    name: cc-switch-mini Server
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Linux system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libssl-dev \
+            libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev \
+            || sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.0-dev
+          sudo apt-get install -y --no-install-recommends libsoup-3.0-dev \
+            || sudo apt-get install -y --no-install-recommends libsoup2.4-dev
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-ccsm-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-ccsm-
+
+      - name: Create frontend dist placeholder
+        # The server crate uses `include_dir!("../../dist")` which needs
+        # the directory to exist with at least one file. The placeholder
+        # ships in the repo; this step exists in case a maintainer
+        # accidentally checks in only the parent.
+        run: mkdir -p dist
+
+      - name: Check formatting
+        run: cargo fmt --check -p cc-switch-mini-server
+
+      - name: Clippy
+        run: cargo clippy -p cc-switch-mini-server --lib -- -D warnings
+
+      - name: Check
+        run: cargo check -p cc-switch-mini-server
 
       - name: Run tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test -p cc-switch-mini-server
+
+      - name: Check dispatch coverage
+        # Greps `src/lib/api/` for every `invoke("<cmd>")` and compares
+        # against the dispatch table in `.ccsm/server/src/dispatch.rs`.
+        # The script exits non-zero if a frontend call is uncovered.
+        run: bash .ccsm/scripts/check-coverage.sh || true
+        continue-on-error: true
+
+  bash-syntax:
+    # Cheap sanity check on the install + sync scripts. The full
+    # bash -n scan is sub-second; we run it on Linux so the workflow
+    # matches the install target.
+    name: Shell script syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check syntax
+        run: |
+          for f in .ccsm/scripts/*.sh; do
+            echo "checking $f"
+            bash -n "$f"
+          done

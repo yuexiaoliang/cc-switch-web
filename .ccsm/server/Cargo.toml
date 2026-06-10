@@ -1,0 +1,77 @@
+[package]
+name = "cc-switch-mini-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Headless Web derivative of cc-switch - runs on a Linux server and serves the upstream Web UI over HTTP."
+
+# Release binary is renamed to `cc-switch-mini` for nicer ergonomics; the
+# `cc-switch-mini-server` package name keeps the workspace target explicit.
+[[bin]]
+name = "cc-switch-mini"
+path = "src/main.rs"
+
+[lib]
+name = "cc_switch_mini_server"
+path = "src/lib.rs"
+
+# Reuse the upstream business logic. `cc_switch_lib` exposes everything we
+# need for dispatch (ProviderService, ProxyService, ConfigService,
+# Database, AppState, models).
+[dependencies]
+cc-switch = { path = "../../src-tauri" }
+
+# Async runtime + HTTP server (also pulled in by cc-switch transitively, but
+# we list them explicitly so `cargo check` on this crate does not depend on
+# internal re-exports of the lib).
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync", "signal", "net", "fs"] }
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "set-header"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Serialisation.
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+
+# CLI / error handling. The `env` feature lets `#[arg(env = "FOO")]` look
+# up defaults from the environment - covered by section 8.3 of the spec.
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+thiserror = "1"
+
+# Embed the Vite output directly into the binary. `include_dir` skips hidden
+# files by default and is no-std-friendly.
+include_dir = "0.7"
+mime_guess = "2"
+
+# Streaming for SSE.
+async-stream = "0.3"
+futures = "0.3"
+
+# Logging - cc-switch already pulls in `log`; we add env_logger for the
+# `RUST_LOG` filter.
+log = "0.4"
+env_logger = "0.11"
+
+# Time.
+chrono = { version = "0.4", features = ["serde"] }
+
+# Path helpers for the default data dir.
+dirs = "5.0"
+
+# HTTP client for the minimal stream-check probe. We deliberately reuse the
+# exact same version line as the upstream lib so cargo unifies the build.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+# Local DB access for the few commands whose upstream types are not in the
+# public re-export. We open our own connection to the same db file - the
+# upstream `Database::init()` already created the schema, so this is just
+# a peer reader/writer with the same SQL.
+rusqlite = { version = "0.31", features = ["bundled", "backup"] }
+
+[dev-dependencies]
+tempfile = "3"
