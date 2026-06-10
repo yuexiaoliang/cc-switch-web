@@ -18,7 +18,16 @@
 #   5. Prints a one-line `ssh -L` hint to remind the user about the
 #      safe SSH-tunnel access pattern.
 
-set -euo pipefail
+# The shebang says bash (it gives us arrays, `[[ ]]`, etc. for free), but
+# the script body is intentionally POSIX-sh compatible so it also runs
+# under `dash` (the default `/bin/sh` on Debian/Ubuntu). In particular:
+#   * `set -eu` instead of `set -euo pipefail` - downstream checks (empty
+#     $VERSION, missing $expected, mismatched checksum) cover pipe failures
+#     without needing pipefail, which dash does not implement.
+#   * `local` only appears inside functions, never inside `(...)` subshells.
+# This is the fix for the "sh: 21: set: Illegal option -o pipefail" error
+# users hit when running `curl ... | sh` on a fresh Ubuntu box.
+set -eu
 
 GITHUB_REPO="${CCSM_GITHUB_REPO:-yuexiaoliang/cc-switch-mini}"
 INSTALL_DIR="${CCSM_INSTALL_DIR:-/usr/local/bin}"
@@ -81,24 +90,30 @@ download_and_verify() {
   if ! curl -fsSL -o "$workdir/SHA256SUMS" "$sums_url"; then
     warn "checksum manifest missing - skipping verification (NOT recommended)"
   else
-    (
-      cd "$workdir"
-      local expected
-      expected="$(grep "  $archive" SHA256SUMS | awk '{print $1}')"
-      [ -n "$expected" ] || die "checksum for $archive not found in SHA256SUMS"
-      local actual
-      actual="$(sha256sum "$archive" | awk '{print $1}')"
-      if [ "$expected" != "$actual" ]; then
-        die "checksum mismatch: expected $expected got $actual"
-      fi
-      say "checksum OK"
-    )
+    verify_checksum "$workdir" "$archive"
   fi
 
   say "extracting"
   tar -xJf "$workdir/$archive" -C "$workdir"
   [ -f "$workdir/$BIN_NAME" ] || die "tarball did not contain $BIN_NAME"
   BIN_PATH="$workdir/$BIN_NAME"
+}
+
+# Verify a downloaded archive's SHA-256 against SHA256SUMS. Kept as a
+# function (not a `(...)` subshell) so `local` is valid in POSIX sh.
+verify_checksum() {
+  local workdir="$1"
+  local archive="$2"
+  local sums_file="$workdir/SHA256SUMS"
+  local archive_path="$workdir/$archive"
+  local expected actual
+  expected="$(grep "  $archive" "$sums_file" | awk '{print $1}')"
+  [ -n "$expected" ] || die "checksum for $archive not found in SHA256SUMS"
+  actual="$(sha256sum "$archive_path" | awk '{print $1}')"
+  if [ "$expected" != "$actual" ]; then
+    die "checksum mismatch: expected $expected got $actual"
+  fi
+  say "checksum OK"
 }
 
 # --- 4. Install ---------------------------------------------------------------
