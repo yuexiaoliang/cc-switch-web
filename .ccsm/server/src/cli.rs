@@ -122,3 +122,16 @@ mod tests {
         assert!(resolved.token.is_none());
     }
 }
+
+#[cfg(test)]
+impl Resolved {
+    pub fn placeholder() -> Self {
+        Self {
+            bind_addr: "127.0.0.1:0".parse().unwrap(),
+            data_dir: std::path::PathBuf::from("/tmp/cc-switch-mini-test"),
+            config_dir: None,
+            token: None,
+            spa_fallback: true,
+        }
+    }
+}

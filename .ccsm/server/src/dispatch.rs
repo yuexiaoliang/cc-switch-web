@@ -27,6 +27,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::commands_extra::{
+    auth, claude, deeplink, failover, mcp, omo, openclaw, opencode, pricing, prompt,
+    session, skill, sync, tools, usage,
+};
+use crate::commands_extra::{provider as ext_provider, proxy as ext_proxy};
+
 #[derive(Debug, Default, Deserialize)]
 pub struct InvokeRequest {
     #[serde(default)]
@@ -86,7 +92,6 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "remove_provider_from_live_config" => provider::remove_from_live(ctx, args).await,
         "switch_provider" => provider::switch(ctx, args).await,
         "update_providers_sort_order" => provider::update_sort(ctx, args).await,
-        "import_default_config" => provider::import_default(ctx, args).await,
 
         "get_settings" => settings::get(ctx).await,
         "save_settings" => settings::save(ctx, args).await,
@@ -136,14 +141,230 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "get_migration_result" => Ok(json!(false)),
         "get_skills_migration_result" => Ok(Value::Null),
         "check_env_conflicts" => Ok(json!([])),
-        "get_claude_desktop_status" => Ok(json!({"installed": false, "cliAvailable": false})),
+        
         "get_claude_code_config_path" => frontend::get_claude_code_config_path(ctx).await,
-        "get_app_config_dir_override" => Ok(Value::Null),
-        "get_log_config" => Ok(json!({"level": "info", "maxFileSize": 5242880, "maxFiles": 3})),
-        "get_auto_failover_enabled" => Ok(json!(false)),
-        "get_failover_queue" => Ok(json!([])),
-        "get_proxy_takeover_status" => Ok(json!({"enabled": false})),
+        
+        
+        
+        
+        
         "set_window_theme" => Ok(Value::Null),
+
+        // ---- usage / pricing ----
+        "get_usage_summary" => usage::get_usage_summary(ctx, args).await,
+        "get_usage_summary_by_app" => usage::get_usage_summary_by_app(ctx, args).await,
+        "get_usage_trends" => usage::get_usage_trends(ctx, args).await,
+        "get_provider_stats" => usage::get_provider_stats(ctx, args).await,
+        "get_model_stats" => usage::get_model_stats(ctx, args).await,
+        "get_request_logs" => usage::get_request_logs(ctx, args).await,
+        "get_request_detail" => usage::get_request_detail(ctx, args).await,
+        "check_provider_limits" => usage::check_provider_limits(ctx, args).await,
+        "sync_session_usage" => usage::sync_session_usage(ctx).await,
+        "get_usage_data_sources" => usage::get_usage_data_sources(ctx).await,
+        "get_model_pricing" => pricing::get_model_pricing(ctx).await,
+        "update_model_pricing" => pricing::update_model_pricing(ctx, args).await,
+        "delete_model_pricing" => pricing::delete_model_pricing(ctx, args).await,
+        "queryProviderUsage" => ext_provider::query_provider_usage(args).await,
+        "testUsageScript" => ext_provider::test_usage_script(args).await,
+        "get_provider_health" => omo::get_provider_health(args).await,
+        "get_subscription_quota" => tools::get_balance(args).await,
+
+        // ---- MCP ----
+        "get_mcp_servers" => mcp::get_mcp_servers(ctx).await,
+        "get_mcp_config" => mcp::get_mcp_config(ctx, args).await,
+        "upsert_mcp_server" => mcp::upsert_mcp_server(ctx, args).await,
+        "delete_mcp_server" => mcp::delete_mcp_server(ctx, args).await,
+        "toggle_mcp_app" => mcp::toggle_mcp_app(ctx, args).await,
+        "set_mcp_enabled" => mcp::set_mcp_enabled(ctx, args).await,
+        "import_mcp_from_apps" => mcp::import_mcp_from_apps(ctx).await,
+        "upsert_mcp_server_in_config" => mcp::upsert_mcp_server_in_config(ctx, args).await,
+        "delete_mcp_server_in_config" => mcp::delete_mcp_server_in_config(ctx, args).await,
+        "get_claude_mcp_status" => mcp::get_claude_mcp_status().await,
+        "read_claude_mcp_config" => mcp::read_claude_mcp_config().await,
+        "upsert_claude_mcp_server" => mcp::upsert_claude_mcp_server(args).await,
+        "delete_claude_mcp_server" => mcp::delete_claude_mcp_server(args).await,
+        "validate_mcp_command" => mcp::validate_mcp_command(args).await,
+
+        // ---- prompts ----
+        "get_prompts" => prompt::get_prompts(ctx, args).await,
+        "upsert_prompt" => prompt::upsert_prompt(ctx, args).await,
+        "delete_prompt" => prompt::delete_prompt(ctx, args).await,
+        "enable_prompt" => prompt::enable_prompt(ctx, args).await,
+        "import_prompt_from_file" => prompt::import_prompt_from_file(ctx, args).await,
+        "get_current_prompt_file_content" => prompt::get_current_prompt_file_content(args).await,
+
+        // ---- skills ----
+        "get_installed_skills" => skill::get_installed_skills(ctx).await,
+        "get_skill_backups" => skill::get_skill_backups().await,
+        "delete_skill_backup" => skill::delete_skill_backup(args).await,
+        "install_skill_unified" => skill::install_skill_unified(ctx, args).await,
+        "uninstall_skill_unified" => skill::uninstall_skill_unified(ctx, args).await,
+        "restore_skill_backup" => skill::restore_skill_backup(ctx, args).await,
+        "toggle_skill_app" => skill::toggle_skill_app(ctx, args).await,
+        "scan_unmanaged_skills" => skill::scan_unmanaged_skills(ctx).await,
+        "import_skills_from_apps" => skill::import_skills_from_apps(ctx, args).await,
+        "discover_available_skills" => skill::discover_available_skills(ctx).await,
+        "check_skill_updates" => skill::check_skill_updates(ctx).await,
+        "update_skill" => skill::update_skill(ctx, args).await,
+        "migrate_skill_storage" => skill::migrate_skill_storage(ctx, args).await,
+        "search_skills_sh" => skill::search_skills_sh(args).await,
+        "get_skills" => skill::get_skills(ctx).await,
+        "get_skills_for_app" => skill::get_skills_for_app(ctx, args).await,
+        "install_skill" => skill::install_skill(ctx, args).await,
+        "install_skill_for_app" => skill::install_skill_for_app(ctx, args).await,
+        "uninstall_skill" => skill::uninstall_skill(ctx, args).await,
+        "uninstall_skill_for_app" => skill::uninstall_skill_for_app(ctx, args).await,
+        "get_skill_repos" => skill::get_skill_repos(ctx).await,
+        "add_skill_repo" => skill::add_skill_repo(ctx, args).await,
+        "remove_skill_repo" => skill::remove_skill_repo(ctx, args).await,
+        "install_skills_from_zip" => skill::install_skills_from_zip(ctx, args).await,
+
+        // ---- providers (extended) ----
+        "get_universal_providers" => ext_provider::get_universal_providers(ctx).await,
+        "get_universal_provider" => ext_provider::get_universal_provider(ctx, args).await,
+        "upsert_universal_provider" => ext_provider::upsert_universal_provider(ctx, args).await,
+        "delete_universal_provider" => ext_provider::delete_universal_provider(ctx, args).await,
+        "sync_universal_provider" => ext_provider::sync_universal_provider(ctx, args).await,
+        "sync_current_providers_live" => ext_provider::sync_current_providers_live(ctx).await,
+        "get_custom_endpoints" => ext_provider::get_custom_endpoints(ctx, args).await,
+        "add_custom_endpoint" => ext_provider::add_custom_endpoint(ctx, args).await,
+        "remove_custom_endpoint" => ext_provider::remove_custom_endpoint(ctx, args).await,
+        "update_endpoint_last_used" => ext_provider::update_endpoint_last_used(ctx, args).await,
+        "read_live_provider_settings" => ext_provider::read_live_provider_settings(args).await,
+        "import_default_config" => ext_provider::import_default_config(ctx, args).await,
+        "test_api_endpoints" => ext_provider::test_api_endpoints(args).await,
+        "fetch_models_for_config" => ext_provider::fetch_models_for_config(args).await,
+        "get_claude_common_config_snippet" => ext_provider::get_claude_common_config_snippet(args).await,
+        "set_claude_common_config_snippet" => ext_provider::set_claude_common_config_snippet(args).await,
+        "get_common_config_snippet" => ext_provider::get_common_config_snippet(args).await,
+        "set_common_config_snippet" => ext_provider::set_common_config_snippet(args).await,
+        "apply_claude_plugin_config" => ext_provider::apply_claude_plugin_config(args).await,
+        "apply_claude_onboarding_skip" => ext_provider::apply_claude_onboarding_skip(args).await,
+        "clear_claude_onboarding_skip" => ext_provider::clear_claude_onboarding_skip(args).await,
+        "ensure_claude_desktop_official_provider" => ext_provider::ensure_claude_desktop_official_provider(ctx, args).await,
+
+        // ---- proxy (extended) ----
+        "get_global_proxy_config" => ext_proxy::get_global_proxy_config(ctx).await,
+        "update_global_proxy_config" => ext_proxy::update_global_proxy_config(ctx, args).await,
+        "set_global_proxy_url" => ext_proxy::set_global_proxy_url(ctx, args).await,
+        "get_proxy_config_for_app" => ext_proxy::get_proxy_config_for_app(ctx, args).await,
+        "update_proxy_config_for_app" => ext_proxy::update_proxy_config_for_app(ctx, args).await,
+        "set_proxy_takeover_for_app" => ext_proxy::set_proxy_takeover_for_app(ctx, args).await,
+        "is_live_takeover_active" => ext_proxy::is_live_takeover_active(ctx).await,
+        "get_proxy_takeover_status" => ext_proxy::get_proxy_takeover_status(ctx).await,
+        "switch_proxy_provider" => ext_proxy::switch_proxy_provider(ctx, args).await,
+        "get_circuit_breaker_config" => ext_proxy::get_circuit_breaker_config(ctx, args).await,
+        "update_circuit_breaker_config" => ext_proxy::update_circuit_breaker_config(ctx, args).await,
+        "get_circuit_breaker_stats" => ext_proxy::get_circuit_breaker_stats(ctx, args).await,
+        "reset_circuit_breaker" => ext_proxy::reset_circuit_breaker(ctx, args).await,
+        "get_default_cost_multiplier" => ext_proxy::get_default_cost_multiplier(ctx, args).await,
+        "set_default_cost_multiplier" => ext_proxy::set_default_cost_multiplier(ctx, args).await,
+        "get_pricing_model_source" => ext_proxy::get_pricing_model_source(ctx, args).await,
+        "set_pricing_model_source" => ext_proxy::set_pricing_model_source(ctx, args).await,
+
+        // ---- failover ----
+        "get_failover_queue" => failover::get_failover_queue(ctx, args).await,
+        "add_to_failover_queue" => failover::add_to_failover_queue(ctx, args).await,
+        "remove_from_failover_queue" => failover::remove_from_failover_queue(ctx, args).await,
+        "get_auto_failover_enabled" => failover::get_auto_failover_enabled(ctx, args).await,
+        "set_auto_failover_enabled" => failover::set_auto_failover_enabled(ctx, args).await,
+        "get_available_providers_for_failover" => failover::get_available_providers_for_failover(ctx, args).await,
+
+        // ---- omo ----
+        "read_omo_local_file" => omo::read_omo_local_file().await,
+        "read_omo_slim_local_file" => omo::read_omo_slim_local_file().await,
+        "get_current_omo_provider_id" => omo::get_current_omo_provider_id(ctx).await,
+        "get_current_omo_slim_provider_id" => omo::get_current_omo_slim_provider_id(ctx).await,
+        "disable_current_omo" => omo::disable_current_omo(ctx).await,
+        "disable_current_omo_slim" => omo::disable_current_omo_slim(ctx).await,
+        "get_optimizer_config" => omo::get_optimizer_config(args).await,
+        "set_optimizer_config" => omo::set_optimizer_config(args).await,
+        "get_rectifier_config" => omo::get_rectifier_config(args).await,
+        "set_rectifier_config" => omo::set_rectifier_config(args).await,
+
+        // ---- openclaw ----
+        "get_openclaw_live_provider_ids" => openclaw::get_openclaw_live_provider_ids().await,
+        "get_openclaw_live_provider" => openclaw::get_openclaw_live_provider(args).await,
+        "import_openclaw_providers_from_live" => openclaw::import_openclaw_providers_from_live(ctx).await,
+        "scan_openclaw_config_health" => openclaw::scan_openclaw_config_health().await,
+        "get_openclaw_default_model" => openclaw::get_openclaw_default_model().await,
+        "set_openclaw_default_model" => openclaw::set_openclaw_default_model(args).await,
+        "get_openclaw_model_catalog" => openclaw::get_openclaw_model_catalog().await,
+        "set_openclaw_model_catalog" => openclaw::set_openclaw_model_catalog(args).await,
+        "get_openclaw_agents_defaults" => openclaw::get_openclaw_agents_defaults().await,
+        "set_openclaw_agents_defaults" => openclaw::set_openclaw_agents_defaults(args).await,
+        "get_openclaw_env" => openclaw::get_openclaw_env().await,
+        "set_openclaw_env" => openclaw::set_openclaw_env(args).await,
+        "get_openclaw_tools" => openclaw::get_openclaw_tools().await,
+        "set_openclaw_tools" => openclaw::set_openclaw_tools(args).await,
+
+        // ---- opencode ----
+        "get_opencode_live_provider_ids" => opencode::get_opencode_live_provider_ids().await,
+        "import_opencode_providers_from_live" => opencode::import_opencode_providers_from_live(ctx).await,
+
+        // ---- sessions ----
+        "list_sessions" => session::list_sessions(ctx).await,
+        "get_session_messages" => session::get_session_messages(ctx, args).await,
+        "delete_session" => session::delete_session(ctx, args).await,
+        "delete_sessions" => session::delete_sessions(ctx, args).await,
+        "launch_session_terminal" => session::launch_session_terminal(ctx, args).await,
+
+        // ---- deeplink ----
+        "parse_deeplink" => deeplink::parse_deeplink(args).await,
+        "merge_deeplink_config" => deeplink::merge_deeplink_config(args).await,
+        "import_from_deeplink_unified" => deeplink::import_from_deeplink_unified(ctx, args).await,
+
+        // ---- claude ----
+        "get_claude_desktop_status" => claude::get_claude_desktop_status().await,
+        "get_claude_desktop_default_routes" => claude::get_claude_desktop_default_routes().await,
+
+        // ---- tools ----
+        "open_provider_terminal" => tools::open_provider_terminal(ctx, args).await,
+        "open_workspace_directory" => tools::open_workspace_directory(ctx, args).await,
+        "pick_directory" => tools::pick_directory(args).await,
+        "open_zip_file_dialog" => tools::open_zip_file_dialog(args).await,
+        "run_tool_lifecycle_action" => tools::run_tool_lifecycle_action(args).await,
+        "probe_tool_installations" => tools::probe_tool_installations(args).await,
+        "export_config_to_file" => tools::export_config_to_file(args).await,
+        "import_config_from_file" => tools::import_config_from_file(args).await,
+        "get_balance" => tools::get_balance(args).await,
+        "get_codex_oauth_quota" => tools::get_codex_oauth_quota(args).await,
+        "get_codex_oauth_models" => tools::get_codex_oauth_models(args).await,
+        "get_coding_plan_quota" => tools::get_coding_plan_quota(args).await,
+        "get_log_config" => tools::get_log_config(ctx).await,
+        "set_log_config" => tools::set_log_config(ctx, args).await,
+        "set_app_config_dir_override" => tools::set_app_config_dir_override(ctx, args).await,
+        "get_app_config_dir_override" => tools::get_app_config_dir_override().await,
+
+        // ---- db backup / sync ----
+        "create_db_backup" => sync::create_db_backup(ctx).await,
+        "list_db_backups" => sync::list_db_backups(ctx).await,
+        "delete_db_backup" => sync::delete_db_backup(ctx, args).await,
+        "restore_db_backup" => sync::restore_db_backup(ctx, args).await,
+        "rename_db_backup" => sync::rename_db_backup(ctx, args).await,
+        "s3_sync_save_settings" => sync::s3_sync_save_settings(ctx, args).await,
+        "s3_test_connection" => sync::s3_test_connection(args).await,
+        "s3_sync_upload" => sync::s3_sync_upload(args).await,
+        "s3_sync_download" => sync::s3_sync_download(args).await,
+        "s3_sync_fetch_remote_info" => sync::s3_sync_fetch_remote_info(args).await,
+        "webdav_sync_save_settings" => sync::webdav_sync_save_settings(ctx, args).await,
+        "webdav_test_connection" => sync::webdav_test_connection(args).await,
+        "webdav_sync_upload" => sync::webdav_sync_upload(args).await,
+        "webdav_sync_download" => sync::webdav_sync_download(args).await,
+        "webdav_sync_fetch_remote_info" => sync::webdav_sync_fetch_remote_info(args).await,
+
+        // ---- auth / oauth stubs (no OAuth manager on headless) ----
+        "auth_get_status" => auth::auth_get_status(args).await,
+        "auth_start_login" => auth::auth_start_login(args).await,
+        "auth_poll_for_account" => auth::auth_poll_for_account(args).await,
+        "auth_list_accounts" => auth::auth_list_accounts(args).await,
+        "auth_logout" => auth::auth_logout(args).await,
+        "auth_remove_account" => auth::auth_remove_account(args).await,
+        "auth_set_default_account" => auth::auth_set_default_account(args).await,
+        "copilot_logout" => auth::copilot_logout(args).await,
+        "copilot_remove_account" => auth::copilot_remove_account(args).await,
+        "copilot_set_default_account" => auth::copilot_set_default_account(args).await,
+        "import_claude_desktop_providers_from_claude" => auth::import_claude_desktop_providers_from_claude(args).await,
 
         _ => Err(ApiError::UnknownCommand(cmd.to_string())),
     }
@@ -228,13 +449,6 @@ mod provider {
         }
         tx.commit()?;
         Ok(json!(true))
-    }
-
-    pub async fn import_default(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
-        let app = require_app(&args)?;
-        let ok = cc_switch_lib::ProviderService::import_default_config(&ctx.state, app)
-            .map_err(ApiError::from)?;
-        Ok(json!(ok))
     }
 
     #[derive(Debug, Deserialize)]
@@ -759,7 +973,7 @@ mod hermes {
             .state
             .db
             .get_provider_ids("hermes")
-            .map_err(|e| hermes_err(e))?;
+            .map_err(hermes_err)?;
         let mut imported = 0usize;
         for (name, config) in providers {
             if name.trim().is_empty() {
