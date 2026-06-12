@@ -1,6 +1,11 @@
 # Drop into /home/yuexiaoliang/nginx-config/conf.d/cc-switch.conf
 # (auto-loaded by the existing nginx.conf; the SSL cert paths and
 #  backend port can be tuned here.)
+#
+# Auth: Basic Auth with the same shared credential as rail.yue.center and
+#       docs.yue.center (file at /home/yuexiaoliang/.htpasswd,
+#       user `yuexiaoliang`). To change the password:
+#           htpasswd -B /home/yuexiaoliang/.htpasswd yuexiaoliang
 server {
     listen 80;
     listen [::]:80;
@@ -16,6 +21,11 @@ server {
     ssl_certificate     /etc/letsencrypt/live/yue.center/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/yue.center/privkey.pem;
 
+    # Shared credential with rail.yue.center and docs.yue.center
+    auth_basic "Login Required";
+    auth_basic_user_file /home/yuexiaoliang/.htpasswd;
+
+    # gzip
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
     gzip_vary on;
     gzip_min_length 256;
