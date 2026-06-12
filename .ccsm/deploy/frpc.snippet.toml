@@ -1,0 +1,14 @@
+# Append to /home/yuexiaoliang/frpc.toml
+[[proxies]]
+name = "cc-switch"
+type = "https"
+localIP = "127.0.0.1"
+localPort = 443
+customDomains = ["cc-switch.yue.center"]
+
+[[proxies]]
+name = "cc-switch-http"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 80
+customDomains = ["cc-switch.yue.center"]

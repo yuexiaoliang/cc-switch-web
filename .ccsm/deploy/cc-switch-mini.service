@@ -1,0 +1,23 @@
+[Unit]
+Description=cc-switch-mini headless server
+Documentation=https://github.com/yuexiaoliang/cc-switch-mini
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust the user/group if you are not yuexiaoliang.
+# The hardening directives (ProtectHome / ReadWritePaths) assume a
+# single-tenant install on a Linux workstation; remove them if you
+# run the service in a different security context.
+User=yuexiaoliang
+Group=yuexiaoliang
+WorkingDirectory=/home/yuexiaoliang
+ExecStart=/usr/local/bin/cc-switch-mini --host 127.0.0.1 --port 3000
+Restart=on-failure
+RestartSec=5s
+Environment=CC_SWITCH_MINI_DATA_DIR=/home/yuexiaoliang/.local/share/cc-switch-mini
+Environment=RUST_LOG=info,cc_switch_mini=debug
+
+[Install]
+WantedBy=default.target
