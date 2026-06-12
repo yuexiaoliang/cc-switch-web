@@ -108,6 +108,18 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "get_app_config_path" => frontend::get_app_config_path(ctx).await,
         "get_tool_versions" => frontend::get_tool_versions(args).await,
 
+        // Hermes-specific commands (spec 6.1 coverage)
+        "get_hermes_model_config" => hermes::get_model_config().await,
+        "open_hermes_web_ui" => hermes::open_web_ui(args).await,
+        "launch_hermes_dashboard" => hermes::launch_dashboard().await,
+        "get_hermes_memory" => hermes::get_memory(args).await,
+        "set_hermes_memory" => hermes::set_memory(args).await,
+        "get_hermes_memory_limits" => hermes::get_memory_limits().await,
+        "set_hermes_memory_enabled" => hermes::set_memory_enabled(args).await,
+        "get_hermes_live_provider_ids" => hermes::get_live_provider_ids().await,
+        "get_hermes_live_provider" => hermes::get_live_provider(args).await,
+        "import_hermes_providers_from_live" => hermes::import_from_live(ctx).await,
+
         "get_auto_launch_status" => Ok(json!(false)),
         "set_auto_launch" => Ok(json!(true)),
         "is_portable_mode" => Ok(json!(false)),
@@ -118,6 +130,20 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "open_config_folder" => Ok(json!(true)),
         "open_file_dialog" => Ok(Value::Null),
         "save_file_dialog" => Ok(Value::Null),
+
+        // Initialization / migration stubs (spec 6.2 no-ops)
+        "get_init_error" => Ok(Value::Null),
+        "get_migration_result" => Ok(json!(false)),
+        "get_skills_migration_result" => Ok(Value::Null),
+        "check_env_conflicts" => Ok(json!([])),
+        "get_claude_desktop_status" => Ok(json!({"installed": false, "cliAvailable": false})),
+        "get_claude_code_config_path" => frontend::get_claude_code_config_path(ctx).await,
+        "get_app_config_dir_override" => Ok(Value::Null),
+        "get_log_config" => Ok(json!({"level": "info", "maxFileSize": 5242880, "maxFiles": 3})),
+        "get_auto_failover_enabled" => Ok(json!(false)),
+        "get_failover_queue" => Ok(json!([])),
+        "get_proxy_takeover_status" => Ok(json!({"enabled": false})),
+        "set_window_theme" => Ok(Value::Null),
 
         _ => Err(ApiError::UnknownCommand(cmd.to_string())),
     }
@@ -639,6 +665,125 @@ mod frontend {
 
     pub async fn get_tool_versions(_args: Value) -> Result<Value> {
         Ok(json!([]))
+    }
+
+    pub async fn get_claude_code_config_path(
+        ctx: &Arc<crate::AppContext>,
+    ) -> Result<Value> {
+        let path = dirs::home_dir()
+            .map(|h| h.join(".claude").join("config.json"))
+            .unwrap_or_else(|| ctx.opts.data_dir.join(".claude").join("config.json"));
+        Ok(Value::String(path.display().to_string()))
+    }
+}
+
+mod hermes {
+    use super::*;
+
+    fn hermes_err(e: impl std::fmt::Display) -> ApiError {
+        ApiError::Internal(format!("hermes_config: {e}"))
+    }
+
+    pub async fn get_model_config() -> Result<Value> {
+        let cfg = cc_switch_lib::hermes_config::get_model_config().map_err(hermes_err)?;
+        Ok(cfg.map_or(Value::Null, |v| serde_json::to_value(&v).unwrap_or(Value::Null)))
+    }
+
+    pub async fn open_web_ui(args: Value) -> Result<Value> {
+        // Headless server: no browser to open. Log the requested path so
+        // the operator can navigate there manually.
+        let path: Option<String> = optional_arg(&args, "path");
+        let port = std::env::var("HERMES_WEB_PORT")
+            .ok()
+            .and_then(|raw| raw.trim().parse::<u16>().ok())
+            .unwrap_or(9119);
+        let target = match path.as_deref() {
+            Some(p) if p.starts_with('/') => format!("http://127.0.0.1:{port}{p}"),
+            Some(p) if !p.is_empty() => format!("http://127.0.0.1:{port}/{p}"),
+            _ => format!("http://127.0.0.1:{port}/"),
+        };
+        log::info!("open_hermes_web_ui: {target} (headless server — open manually)");
+        Ok(Value::Null)
+    }
+
+    pub async fn launch_dashboard() -> Result<Value> {
+        // Headless server: no preferred-terminal launcher available.
+        log::info!("launch_hermes_dashboard: run `hermes dashboard` manually on this host");
+        Ok(Value::Null)
+    }
+
+    pub async fn get_memory(args: Value) -> Result<Value> {
+        let kind: cc_switch_lib::hermes_config::MemoryKind = require_arg(&args, "kind")?;
+        let content = cc_switch_lib::hermes_config::read_memory(kind).map_err(hermes_err)?;
+        Ok(Value::String(content))
+    }
+
+    pub async fn set_memory(args: Value) -> Result<Value> {
+        let kind: cc_switch_lib::hermes_config::MemoryKind = require_arg(&args, "kind")?;
+        let content: String = require_arg(&args, "content")?;
+        cc_switch_lib::hermes_config::write_memory(kind, &content).map_err(hermes_err)?;
+        Ok(Value::Null)
+    }
+
+    pub async fn get_memory_limits() -> Result<Value> {
+        let limits = cc_switch_lib::hermes_config::read_memory_limits().map_err(hermes_err)?;
+        Ok(serde_json::to_value(&limits).unwrap_or(Value::Null))
+    }
+
+    pub async fn set_memory_enabled(args: Value) -> Result<Value> {
+        let kind: cc_switch_lib::hermes_config::MemoryKind = require_arg(&args, "kind")?;
+        let enabled: bool = require_arg(&args, "enabled")?;
+        let outcome = cc_switch_lib::hermes_config::set_memory_enabled(kind, enabled)
+            .map_err(hermes_err)?;
+        Ok(serde_json::to_value(&outcome).unwrap_or(Value::Null))
+    }
+
+    pub async fn get_live_provider_ids() -> Result<Value> {
+        let providers = cc_switch_lib::hermes_config::get_providers().map_err(hermes_err)?;
+        let ids: Vec<String> = providers.keys().cloned().collect();
+        Ok(serde_json::to_value(&ids)?)
+    }
+
+    pub async fn get_live_provider(args: Value) -> Result<Value> {
+        let id: String = require_arg(&args, "providerId")?;
+        let provider = cc_switch_lib::hermes_config::get_provider(&id).map_err(hermes_err)?;
+        Ok(provider.map_or(Value::Null, |v| v))
+    }
+
+    pub async fn import_from_live(ctx: &Arc<crate::AppContext>) -> Result<Value> {
+        let providers = cc_switch_lib::hermes_config::get_providers().map_err(hermes_err)?;
+        if providers.is_empty() {
+            return Ok(json!(0));
+        }
+        let existing_ids = ctx
+            .state
+            .db
+            .get_provider_ids("hermes")
+            .map_err(|e| hermes_err(e))?;
+        let mut imported = 0usize;
+        for (name, config) in providers {
+            if name.trim().is_empty() {
+                log::warn!("Skipping Hermes provider with empty name");
+                continue;
+            }
+            if existing_ids.contains(&name) {
+                log::debug!("Hermes provider '{name}' already exists, skipping");
+                continue;
+            }
+            let mut provider =
+                cc_switch_lib::Provider::with_id(name.clone(), name.clone(), config, None);
+            provider.meta = Some(cc_switch_lib::ProviderMeta {
+                live_config_managed: Some(true),
+                ..Default::default()
+            });
+            if let Err(e) = ctx.state.db.save_provider("hermes", &provider) {
+                log::warn!("Failed to import Hermes provider '{name}': {e}");
+                continue;
+            }
+            imported += 1;
+            log::info!("Imported Hermes provider '{name}' from live config");
+        }
+        Ok(json!(imported))
     }
 }
 
