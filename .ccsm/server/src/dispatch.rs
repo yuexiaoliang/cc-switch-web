@@ -130,6 +130,7 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "is_portable_mode" => Ok(json!(false)),
         "restart_app" => Ok(json!(true)),
         "check_for_updates" => Ok(json!(true)),
+        "install_update_and_restart" => Ok(json!(false)),
         "update_tray_menu" => Ok(json!(true)),
         "open_app_config_folder" => Ok(json!(true)),
         "open_config_folder" => Ok(json!(true)),

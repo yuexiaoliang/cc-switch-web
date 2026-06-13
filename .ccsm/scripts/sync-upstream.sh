@@ -126,6 +126,39 @@ if git diff --name-only --diff-filter=U | grep -q "^Cargo.toml$"; then
   fi
 fi
 
+# Documentation files we rewrite to document the fork (rather than
+# the upstream Tauri app). Always take ours.
+for f in README.md README_DE.md README_JA.md README_ZH.md \
+         UPSTREAM_COMPATIBILITY.md DEVELOPMENT.md; do
+  if git diff --name-only --diff-filter=U | grep -q "^$f$"; then
+    say "  keeping our $f (fork-specific docs)"
+    git checkout --ours -- "$f"
+    git add -- "$f"
+  fi
+done
+
+# .gitignore: take upstream (they own the Tauri build) but preserve
+# any entries we have added locally that upstream lacks. We append
+# ours to upstream's instead of overwriting.
+if git diff --name-only --diff-filter=U | grep -q "^.gitignore$"; then
+  say "  taking upstream .gitignore and merging local-only entries"
+  upstream_gitignore="$(git show :3:.gitignore 2>/dev/null || true)"
+  our_gitignore="$(cat .gitignore)"
+  if [ -n "$upstream_gitignore" ] && [ "$upstream_gitignore" != "$our_gitignore" ]; then
+    {
+      printf '%s
+' "$upstream_gitignore"
+      printf '\n# === cc-switch-mini additions ===\n'
+      comm -23 <(printf '%s\n' "$our_gitignore" | sort -u) \
+               <(printf '%s\n' "$upstream_gitignore" | sort -u)
+    } > .gitignore.new
+    mv .gitignore.new .gitignore
+  else
+    git checkout --theirs -- .gitignore
+  fi
+  git add .gitignore
+fi
+
 # Anything else with conflicts: warn and stop.
 remaining="$(git diff --name-only --diff-filter=U || true)"
 if [ -n "$remaining" ]; then
