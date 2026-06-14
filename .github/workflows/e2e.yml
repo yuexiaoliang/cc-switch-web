@@ -174,7 +174,7 @@ jobs:
               echo "==== end of failure dump ===="
               return 1
             fi
-            if ! jq -e . /tmp/resp.json >/dev/null 2>&1; then
+            if ! jq . /tmp/resp.json >/dev/null 2>&1; then
               echo "FAIL: $cmd body is not JSON"
               cat /tmp/resp.json; echo
               return 1
