@@ -1,35 +1,28 @@
 {
-  "name": "cc-switch-mini",
-  "version": "3.16.2",
-  "description": "Headless Web derivative of cc-switch - manage AI CLI providers from any browser.",
+  "name": "cc-switch",
+  "version": "3.16.3",
+  "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI",
   "type": "module",
   "scripts": {
+    "dev": "pnpm tauri dev",
+    "build": "pnpm tauri build",
+    "tauri": "tauri",
     "dev:renderer": "vite",
     "build:renderer": "vite build",
-    "build:server": "cargo build --release -p cc-switch-mini-server",
-    "build": "pnpm run build:renderer && pnpm run build:server",
-    "dev:server": "cargo run -p cc-switch-mini-server",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,json}\"",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest watch",
+    "build:server": "cargo build --release -p cc-switch-mini-server",
     "ccsm:check-coverage": "bash .ccsm/scripts/check-coverage.sh",
     "ccsm:sync-upstream": "bash .ccsm/scripts/sync-upstream.sh"
   },
   "keywords": [],
-  "author": "Jason Young, cc-switch-mini contributors",
+  "author": "Jason Young",
   "license": "MIT",
-  "pnpm": {
-    "overrides": {
-      "@tauri-apps/api": "file:./.ccsm/bridge/api",
-      "@tauri-apps/plugin-dialog": "file:./.ccsm/bridge/plugin-dialog",
-      "@tauri-apps/plugin-process": "file:./.ccsm/bridge/plugin-process",
-      "@tauri-apps/plugin-store": "file:./.ccsm/bridge/plugin-store",
-      "@tauri-apps/plugin-updater": "file:./.ccsm/bridge/plugin-updater"
-    }
-  },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.8.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
@@ -101,5 +94,14 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.1.12"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tauri-apps/api": "file:./.ccsm/bridge/api",
+      "@tauri-apps/plugin-dialog": "file:./.ccsm/bridge/plugin-dialog",
+      "@tauri-apps/plugin-process": "file:./.ccsm/bridge/plugin-process",
+      "@tauri-apps/plugin-store": "file:./.ccsm/bridge/plugin-store",
+      "@tauri-apps/plugin-updater": "file:./.ccsm/bridge/plugin-updater"
+    }
   }
 }
