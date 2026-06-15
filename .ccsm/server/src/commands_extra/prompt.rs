@@ -26,7 +26,11 @@ pub async fn get_prompts(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     // IndexMap shape: a JSON object keyed by id.
     let mut map: serde_json::Map<String, Value> = serde_json::Map::new();
     for entry in entries {
-        if let Some(id) = entry.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()) {
+        if let Some(id) = entry
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+        {
             map.insert(id, entry);
         }
     }
@@ -123,7 +127,11 @@ pub async fn import_prompt_from_file(ctx: &Arc<AppContext>, args: Value) -> Resu
         return Ok(Value::String(String::new()));
     };
     let name = file_name.to_string();
-    let id = format!("imported-{}-{}", app.as_str(), chrono::Utc::now().timestamp());
+    let id = format!(
+        "imported-{}-{}",
+        app.as_str(),
+        chrono::Utc::now().timestamp()
+    );
     let now = chrono::Utc::now().timestamp();
     let conn = open_db(ctx)?;
     conn.execute(
@@ -171,11 +179,6 @@ fn row_to_json(row: &rusqlite::Row<'_>) -> rusqlite::Result<Value> {
 }
 
 fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx
-        .opts
-        .data_dir
-        .join(".cc-switch")
-        .join("cc-switch.db");
-    rusqlite::Connection::open(&path)
-        .map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
+    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+    rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

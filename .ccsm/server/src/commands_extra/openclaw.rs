@@ -48,8 +48,7 @@ fn write_openclaw(map: &Map<String, JsonValue>) -> Result<()> {
     }
     let raw = serde_json::to_string_pretty(map)?;
     let tmp = path.with_extension("json.tmp");
-    std::fs::write(&tmp, raw)
-        .map_err(|e| ApiError::Internal(format!("write {tmp:?}: {e}")))?;
+    std::fs::write(&tmp, raw).map_err(|e| ApiError::Internal(format!("write {tmp:?}: {e}")))?;
     std::fs::rename(&tmp, &path)
         .map_err(|e| ApiError::Internal(format!("rename to {path:?}: {e}")))?;
     Ok(())
@@ -60,9 +59,7 @@ fn section<'a>(map: &'a Map<String, JsonValue>, key: &str) -> Option<&'a JsonVal
 }
 
 fn agents_defaults(map: &Map<String, JsonValue>) -> Option<JsonValue> {
-    map.get("agents")
-        .and_then(|a| a.get("defaults"))
-        .cloned()
+    map.get("agents").and_then(|a| a.get("defaults")).cloned()
 }
 
 fn set_agents_defaults(map: &mut Map<String, JsonValue>, defaults: JsonValue) {
@@ -75,8 +72,7 @@ fn set_agents_defaults(map: &mut Map<String, JsonValue>, defaults: JsonValue) {
 }
 
 pub async fn get_openclaw_live_provider_ids() -> Result<Value> {
-    let ids = cc_switch_lib::get_openclaw_live_provider_ids()
-        .map_err(ApiError::from)?;
+    let ids = cc_switch_lib::get_openclaw_live_provider_ids().map_err(ApiError::from)?;
     Ok(serde_json::to_value(&ids)?)
 }
 

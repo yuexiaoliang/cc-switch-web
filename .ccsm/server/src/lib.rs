@@ -24,8 +24,8 @@
 //! ```
 
 pub mod auth;
-pub mod commands_extra;
 pub mod cli;
+pub mod commands_extra;
 pub mod dispatch;
 pub mod error;
 pub mod events;
@@ -139,15 +139,11 @@ async fn shutdown_signal() {
 
 #[cfg(test)]
 impl AppContext {
-    /// A placeholder context for unit tests. Not safe to call DB or
-    /// service methods on this — handlers that need the real state
-    /// must use a fixture.
+    /// A placeholder context for unit tests. Backed by an in-memory database
+    /// so tests can run in parallel without fighting over `~/.cc-switch/cc-switch.db`.
     pub fn placeholder() -> Self {
         use crate::events::EventBus;
-        // Build a throwaway AppContext backed by a memory database. Tests
-        // that need real persistence should use the upstream `Database::memory`
-        // helper instead.
-        let db = cc_switch_lib::Database::init().expect("test database init");
+        let db = cc_switch_lib::Database::memory().expect("test memory database init");
         Self {
             state: Arc::new(cc_switch_lib::AppState::new(Arc::new(db))),
             events: EventBus::new(),

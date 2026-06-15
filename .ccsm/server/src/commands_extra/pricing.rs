@@ -76,6 +76,5 @@ pub async fn delete_model_pricing(ctx: &Arc<AppContext>, args: Value) -> Result<
 
 fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
     let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
-    rusqlite::Connection::open(&path)
-        .map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
+    rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

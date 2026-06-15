@@ -39,9 +39,7 @@ pub fn build(opts: &Resolved) -> Result<Arc<cc_switch_lib::AppState>> {
     if opts.explicit_data_dir {
         let home = opts.data_dir.display().to_string();
         std::env::set_var("CC_SWITCH_TEST_HOME", &home);
-        log::info!(
-            "using explicit data dir as effective home: {home}"
-        );
+        log::info!("using explicit data dir as effective home: {home}");
     }
 
     if let Some(dir) = &opts.config_dir {

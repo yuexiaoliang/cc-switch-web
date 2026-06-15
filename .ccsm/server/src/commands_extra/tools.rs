@@ -41,7 +41,9 @@ pub async fn run_tool_lifecycle_action(_args: Value) -> Result<Value> {
 }
 
 pub async fn probe_tool_installations(_args: Value) -> Result<Value> {
-    let bins = ["claude", "codex", "gemini", "opencode", "hermes", "openclaw"];
+    let bins = [
+        "claude", "codex", "gemini", "opencode", "hermes", "openclaw",
+    ];
     let mut out: Vec<Value> = Vec::new();
     for bin in bins {
         let present = which(bin);
@@ -66,7 +68,9 @@ fn which(cmd: &str) -> Option<std::path::PathBuf> {
 }
 
 pub async fn get_tool_versions(_args: Value) -> Result<Value> {
-    let bins = ["claude", "codex", "gemini", "opencode", "hermes", "openclaw"];
+    let bins = [
+        "claude", "codex", "gemini", "opencode", "hermes", "openclaw",
+    ];
     let out: Vec<Value> = bins
         .iter()
         .map(|b| serde_json::json!({ "tool": b, "version": "unknown" }))
@@ -169,6 +173,5 @@ pub async fn get_app_config_dir_override() -> Result<Value> {
 
 fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
     let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
-    rusqlite::Connection::open(&path)
-        .map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
+    rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

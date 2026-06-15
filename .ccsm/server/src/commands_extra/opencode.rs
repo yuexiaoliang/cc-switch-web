@@ -18,7 +18,9 @@ pub async fn import_opencode_providers_from_live(_ctx: &Arc<AppContext>) -> Resu
         .or_else(|| {
             dirs::home_dir().map(|h| h.join(".config").join("opencode").join("config.json"))
         });
-    let Some(path) = path else { return Ok(serde_json::to_value(0u64)?) };
+    let Some(path) = path else {
+        return Ok(serde_json::to_value(0u64)?);
+    };
     let Ok(raw) = std::fs::read_to_string(&path) else {
         return Ok(serde_json::to_value(0u64)?);
     };

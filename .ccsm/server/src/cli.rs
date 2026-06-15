@@ -96,12 +96,13 @@ impl Resolved {
 }
 
 fn default_data_dir() -> std::io::Result<PathBuf> {
-    // Mirror upstream''s default: `~/.local/share/cc-switch-mini/` on Linux,
-    // the platform-native equivalent elsewhere.
-    let base = dirs::data_local_dir()
-        .or_else(dirs::config_dir)
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
-    Ok(base.join("cc-switch-mini"))
+    // Use the same default as the upstream Tauri app so cc-switch-mini and
+    // the desktop build share the same database and host-tool configs without
+    // requiring --data-dir.
+    let home = dirs::home_dir()
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    Ok(home.join(".cc-switch"))
 }
 
 fn is_loopback(addr: &IpAddr) -> bool {

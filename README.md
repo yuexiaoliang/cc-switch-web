@@ -67,7 +67,7 @@ by `include_dir!`, so the resulting executable is fully self-contained.
 | --- | --- | --- |
 | `--host` | `127.0.0.1` | bind address. `0.0.0.0` exposes the UI; pair with `--token` |
 | `--port` | `3000` | listen port |
-| `--data-dir` | `~/.local/share/cc-switch-mini` | logs and temp files (DB lives under the upstream `~/.cc-switch/`) |
+| `--data-dir` | `~/.cc-switch` | override the upstream default data directory |
 | `--config-dir` | user's home | override where Claude / Codex / Gemini read their configs |
 | `--token` | _(none)_ | optional bearer token; every `/api/*` request must carry it |
 | `--no-spa-fallback` | off | 404 unknown paths (useful for debugging the bridge) |
@@ -75,11 +75,7 @@ by `include_dir!`, so the resulting executable is fully self-contained.
 Environment-variable equivalents: `CC_SWITCH_MINI_DATA_DIR`,
 `CC_SWITCH_MINI_CONFIG_DIR`, `CC_SWITCH_MINI_TOKEN`.
 
-> **Upstream parity** — `--data-dir` is a cc-switch-mini-only concept. The
-> SQLite database and provider configuration files (`~/.hermes/`,
-> `~/.claude/`, `~/.codex/`, `~/.gemini/`) always live at the upstream
-> locations so you can switch back to the desktop app without any data
-> migration.
+> **Upstream parity** — By default cc-switch-mini shares the exact same data layout as the upstream Tauri app (`~/.cc-switch/`, `~/.claude/`, `~/.codex/`, etc.). Use `--data-dir` only when you want to relocate everything into a self-contained directory.
 
 ## Feature Alignment with Upstream
 
@@ -213,7 +209,6 @@ import/export:
 | Claude config | `~/.claude/settings.json` | both |
 | Codex config | `~/.codex/config.toml` | both |
 | Gemini config | `~/.gemini/config.json` | both |
-| Logs / temp files | `~/.local/share/cc-switch-mini/` | cc-switch-mini only |
 
 ## Architecture
 

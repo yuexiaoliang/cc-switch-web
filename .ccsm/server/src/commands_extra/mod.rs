@@ -16,6 +16,7 @@ use super::AppContext;
 
 pub mod auth;
 pub mod claude;
+pub mod codex_history;
 pub mod deeplink;
 pub mod failover;
 pub mod mcp;
@@ -34,17 +35,14 @@ pub mod usage;
 
 // ---------- shared helpers (re-used across sub-modules) ----------
 
-pub fn require_arg<T: for<'de> serde::Deserialize<'de>>(
-    args: &Value,
-    field: &str,
-) -> Result<T> {
-    let value = args
-        .as_object()
-        .and_then(|o| o.get(field))
-        .ok_or_else(|| ApiError::BadArgument {
-            field: field.to_string(),
-            message: "missing required argument".into(),
-        })?;
+pub fn require_arg<T: for<'de> serde::Deserialize<'de>>(args: &Value, field: &str) -> Result<T> {
+    let value =
+        args.as_object()
+            .and_then(|o| o.get(field))
+            .ok_or_else(|| ApiError::BadArgument {
+                field: field.to_string(),
+                message: "missing required argument".into(),
+            })?;
     serde_json::from_value(value.clone()).map_err(|e| ApiError::BadArgument {
         field: field.to_string(),
         message: e.to_string(),
@@ -58,7 +56,8 @@ pub fn optional_arg<T: for<'de> serde::Deserialize<'de>>(args: &Value, field: &s
 }
 
 pub fn optional_str(args: &Value, field: &str) -> Option<String> {
-    args.get(field).and_then(|v| v.as_str().map(|s| s.to_string()))
+    args.get(field)
+        .and_then(|v| v.as_str().map(|s| s.to_string()))
 }
 
 pub fn optional_i64(args: &Value, field: &str) -> Option<i64> {

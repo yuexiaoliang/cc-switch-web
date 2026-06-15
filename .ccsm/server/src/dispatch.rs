@@ -28,7 +28,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::commands_extra::{
-    auth, claude, deeplink, failover, mcp, omo, openclaw, opencode, pricing, prompt,
+    auth, claude, codex_history, deeplink, failover, mcp, omo, openclaw, opencode, pricing, prompt,
     session, skill, sync, tools, usage,
 };
 use crate::commands_extra::{provider as ext_provider, proxy as ext_proxy};
@@ -95,6 +95,8 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
 
         "get_settings" => settings::get(ctx).await,
         "save_settings" => settings::save(ctx, args).await,
+        "has_codex_unify_history_backup" => codex_history::has_backup(ctx).await,
+        "restore_codex_unified_history" => codex_history::restore(ctx).await,
 
         "start_proxy_server" => proxy::start(ctx).await,
         "stop_proxy_with_restore" => proxy::stop_with_restore(ctx).await,
@@ -142,13 +144,9 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "get_migration_result" => Ok(json!(false)),
         "get_skills_migration_result" => Ok(Value::Null),
         "check_env_conflicts" => Ok(json!([])),
-        
+
         "get_claude_code_config_path" => frontend::get_claude_code_config_path(ctx).await,
-        
-        
-        
-        
-        
+
         "set_window_theme" => Ok(Value::Null),
 
         // ---- usage / pricing ----
@@ -235,14 +233,20 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "import_default_config" => ext_provider::import_default_config(ctx, args).await,
         "test_api_endpoints" => ext_provider::test_api_endpoints(args).await,
         "fetch_models_for_config" => ext_provider::fetch_models_for_config(args).await,
-        "get_claude_common_config_snippet" => ext_provider::get_claude_common_config_snippet(args).await,
-        "set_claude_common_config_snippet" => ext_provider::set_claude_common_config_snippet(args).await,
+        "get_claude_common_config_snippet" => {
+            ext_provider::get_claude_common_config_snippet(args).await
+        }
+        "set_claude_common_config_snippet" => {
+            ext_provider::set_claude_common_config_snippet(args).await
+        }
         "get_common_config_snippet" => ext_provider::get_common_config_snippet(args).await,
         "set_common_config_snippet" => ext_provider::set_common_config_snippet(args).await,
         "apply_claude_plugin_config" => ext_provider::apply_claude_plugin_config(args).await,
         "apply_claude_onboarding_skip" => ext_provider::apply_claude_onboarding_skip(args).await,
         "clear_claude_onboarding_skip" => ext_provider::clear_claude_onboarding_skip(args).await,
-        "ensure_claude_desktop_official_provider" => ext_provider::ensure_claude_desktop_official_provider(ctx, args).await,
+        "ensure_claude_desktop_official_provider" => {
+            ext_provider::ensure_claude_desktop_official_provider(ctx, args).await
+        }
 
         // ---- proxy (extended) ----
         "get_global_proxy_config" => ext_proxy::get_global_proxy_config(ctx).await,
@@ -255,7 +259,9 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "get_proxy_takeover_status" => ext_proxy::get_proxy_takeover_status(ctx).await,
         "switch_proxy_provider" => ext_proxy::switch_proxy_provider(ctx, args).await,
         "get_circuit_breaker_config" => ext_proxy::get_circuit_breaker_config(ctx, args).await,
-        "update_circuit_breaker_config" => ext_proxy::update_circuit_breaker_config(ctx, args).await,
+        "update_circuit_breaker_config" => {
+            ext_proxy::update_circuit_breaker_config(ctx, args).await
+        }
         "get_circuit_breaker_stats" => ext_proxy::get_circuit_breaker_stats(ctx, args).await,
         "reset_circuit_breaker" => ext_proxy::reset_circuit_breaker(ctx, args).await,
         "get_default_cost_multiplier" => ext_proxy::get_default_cost_multiplier(ctx, args).await,
@@ -269,7 +275,9 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "remove_from_failover_queue" => failover::remove_from_failover_queue(ctx, args).await,
         "get_auto_failover_enabled" => failover::get_auto_failover_enabled(ctx, args).await,
         "set_auto_failover_enabled" => failover::set_auto_failover_enabled(ctx, args).await,
-        "get_available_providers_for_failover" => failover::get_available_providers_for_failover(ctx, args).await,
+        "get_available_providers_for_failover" => {
+            failover::get_available_providers_for_failover(ctx, args).await
+        }
 
         // ---- omo ----
         "read_omo_local_file" => omo::read_omo_local_file().await,
@@ -286,7 +294,9 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         // ---- openclaw ----
         "get_openclaw_live_provider_ids" => openclaw::get_openclaw_live_provider_ids().await,
         "get_openclaw_live_provider" => openclaw::get_openclaw_live_provider(args).await,
-        "import_openclaw_providers_from_live" => openclaw::import_openclaw_providers_from_live(ctx).await,
+        "import_openclaw_providers_from_live" => {
+            openclaw::import_openclaw_providers_from_live(ctx).await
+        }
         "scan_openclaw_config_health" => openclaw::scan_openclaw_config_health().await,
         "get_openclaw_default_model" => openclaw::get_openclaw_default_model().await,
         "set_openclaw_default_model" => openclaw::set_openclaw_default_model(args).await,
@@ -301,7 +311,9 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
 
         // ---- opencode ----
         "get_opencode_live_provider_ids" => opencode::get_opencode_live_provider_ids().await,
-        "import_opencode_providers_from_live" => opencode::import_opencode_providers_from_live(ctx).await,
+        "import_opencode_providers_from_live" => {
+            opencode::import_opencode_providers_from_live(ctx).await
+        }
 
         // ---- sessions ----
         "list_sessions" => session::list_sessions(ctx).await,
@@ -365,7 +377,9 @@ async fn dispatch(cmd: &str, ctx: &Arc<crate::AppContext>, args: Value) -> Resul
         "copilot_logout" => auth::copilot_logout(args).await,
         "copilot_remove_account" => auth::copilot_remove_account(args).await,
         "copilot_set_default_account" => auth::copilot_set_default_account(args).await,
-        "import_claude_desktop_providers_from_claude" => auth::import_claude_desktop_providers_from_claude(args).await,
+        "import_claude_desktop_providers_from_claude" => {
+            auth::import_claude_desktop_providers_from_claude(args).await
+        }
 
         _ => Err(ApiError::UnknownCommand(cmd.to_string())),
     }
@@ -470,11 +484,38 @@ mod settings {
     }
 
     pub async fn save(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
-        let incoming: cc_switch_lib::AppSettings = require_arg(&args, "settings")?;
-        let ok = cc_switch_lib::save_settings(incoming)
+        let mut incoming: cc_switch_lib::AppSettings = require_arg(&args, "settings")?;
+        let existing = cc_switch_lib::get_settings()
             .await
             .map_err(ApiError::from)?;
-        Ok(json!(ok))
+
+        // 与上游 `merge_settings_for_save` 保持一致：
+        // 前端 get_settings 会清空同步密码，因此空密码意味着"保持现有"。
+        if let (Some(incoming_sync), Some(existing_sync)) =
+            (incoming.webdav_sync.as_mut(), existing.webdav_sync.as_ref())
+        {
+            if incoming_sync.password.is_empty() {
+                incoming_sync.password = existing_sync.password.clone();
+            }
+        } else if existing.webdav_sync.is_some() {
+            incoming.webdav_sync = existing.webdav_sync.clone();
+        }
+
+        if let (Some(incoming_sync), Some(existing_sync)) =
+            (incoming.s3_sync.as_mut(), existing.s3_sync.as_ref())
+        {
+            if incoming_sync.secret_access_key.is_empty() {
+                incoming_sync.secret_access_key = existing_sync.secret_access_key.clone();
+            }
+        } else if existing.s3_sync.is_some() {
+            incoming.s3_sync = existing.s3_sync.clone();
+        }
+
+        // local_migrations / codex 迁移标记是后端私有状态，前端无权修改。
+        incoming.local_migrations = existing.local_migrations.clone();
+
+        cc_switch_lib::update_settings(incoming).map_err(ApiError::from)?;
+        Ok(json!(true))
     }
 }
 
@@ -882,9 +923,7 @@ mod frontend {
         Ok(json!([]))
     }
 
-    pub async fn get_claude_code_config_path(
-        ctx: &Arc<crate::AppContext>,
-    ) -> Result<Value> {
+    pub async fn get_claude_code_config_path(ctx: &Arc<crate::AppContext>) -> Result<Value> {
         let path = dirs::home_dir()
             .map(|h| h.join(".claude").join("config.json"))
             .unwrap_or_else(|| ctx.opts.data_dir.join(".claude").join("config.json"));
@@ -901,7 +940,9 @@ mod hermes {
 
     pub async fn get_model_config() -> Result<Value> {
         let cfg = cc_switch_lib::hermes_config::get_model_config().map_err(hermes_err)?;
-        Ok(cfg.map_or(Value::Null, |v| serde_json::to_value(&v).unwrap_or(Value::Null)))
+        Ok(cfg.map_or(Value::Null, |v| {
+            serde_json::to_value(&v).unwrap_or(Value::Null)
+        }))
     }
 
     pub async fn open_web_ui(args: Value) -> Result<Value> {
@@ -948,8 +989,8 @@ mod hermes {
     pub async fn set_memory_enabled(args: Value) -> Result<Value> {
         let kind: cc_switch_lib::hermes_config::MemoryKind = require_arg(&args, "kind")?;
         let enabled: bool = require_arg(&args, "enabled")?;
-        let outcome = cc_switch_lib::hermes_config::set_memory_enabled(kind, enabled)
-            .map_err(hermes_err)?;
+        let outcome =
+            cc_switch_lib::hermes_config::set_memory_enabled(kind, enabled).map_err(hermes_err)?;
         Ok(serde_json::to_value(&outcome).unwrap_or(Value::Null))
     }
 

@@ -13,8 +13,7 @@ const WEBDAV_SETTINGS_KEY: &str = "webdav_sync_settings";
 
 fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
     let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
-    rusqlite::Connection::open(&path)
-        .map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
+    rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }
 
 pub async fn create_db_backup(ctx: &Arc<AppContext>) -> Result<Value> {
@@ -29,8 +28,7 @@ pub async fn create_db_backup(ctx: &Arc<AppContext>) -> Result<Value> {
         .unwrap()
         .join(format!("cc-switch-{stamp}.db.bak"));
     if src.exists() {
-        std::fs::copy(&src, &dest)
-            .map_err(|e| ApiError::Internal(format!("backup copy: {e}")))?;
+        std::fs::copy(&src, &dest).map_err(|e| ApiError::Internal(format!("backup copy: {e}")))?;
     }
     Ok(serde_json::json!({
         "id": stamp.to_string(),
@@ -90,8 +88,7 @@ pub async fn restore_db_backup(ctx: &Arc<AppContext>, args: Value) -> Result<Val
         .join(format!("{id}.bak"));
     let dest = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
     if src.exists() {
-        std::fs::copy(&src, &dest)
-            .map_err(|e| ApiError::Internal(format!("restore copy: {e}")))?;
+        std::fs::copy(&src, &dest).map_err(|e| ApiError::Internal(format!("restore copy: {e}")))?;
     }
     Ok(Value::Null)
 }
@@ -116,7 +113,9 @@ pub async fn rename_db_backup(ctx: &Arc<AppContext>, args: Value) -> Result<Valu
     Ok(Value::Null)
 }
 
-fn conn_open_read(ctx: &Arc<AppContext>) -> std::result::Result<rusqlite::Connection, rusqlite::Error> {
+fn conn_open_read(
+    ctx: &Arc<AppContext>,
+) -> std::result::Result<rusqlite::Connection, rusqlite::Error> {
     let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
     rusqlite::Connection::open(&path)
 }

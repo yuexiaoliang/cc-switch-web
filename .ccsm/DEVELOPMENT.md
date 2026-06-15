@@ -121,7 +121,7 @@ prominent example — see their implementation for the pattern.
 | --- | --- | --- | --- |
 | `--host` | – | `127.0.0.1` | `0.0.0.0` to expose the UI; pair with `--token` |
 | `--port` | – | `3000` | listen port |
-| `--data-dir` | `CC_SWITCH_MINI_DATA_DIR` | `~/.local/share/cc-switch-mini` | SQLite + backups live at `<dir>/.cc-switch/cc-switch.db` |
+| `--data-dir` | `CC_SWITCH_MINI_DATA_DIR` | `~/.cc-switch` | override the upstream default data directory; when set, becomes the effective home for upstream path resolution |
 | `--config-dir` | `CC_SWITCH_MINI_CONFIG_DIR` | – | override where Claude / Codex / Gemini read their live configs |
 | `--token` | `CC_SWITCH_MINI_TOKEN` | – | bearer token; every `/api/*` request must carry `Authorization: Bearer <token>` |
 | `--no-spa-fallback` | – | off | disable `index.html` fallback for unknown paths |

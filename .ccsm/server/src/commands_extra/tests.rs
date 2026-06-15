@@ -78,7 +78,15 @@ mod tests {
 
     #[test]
     fn require_app_str_handles_known_apps() {
-        for app in ["claude", "codex", "gemini", "opencode", "openclaw", "hermes", "claude-desktop"] {
+        for app in [
+            "claude",
+            "codex",
+            "gemini",
+            "opencode",
+            "openclaw",
+            "hermes",
+            "claude-desktop",
+        ] {
             let v = json!({ "app": app });
             require_app_str(&v).unwrap();
         }

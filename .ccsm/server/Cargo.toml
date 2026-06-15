@@ -63,6 +63,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # Path helpers for the default data dir.
 dirs = "5.0"
 
+# Codex config parsing for history migration/restore.
+toml_edit = "0.22"
+
 # HTTP client for the minimal stream-check probe. We deliberately reuse the
 # exact same version line as the upstream lib so cargo unifies the build.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }

@@ -47,7 +47,6 @@ pub async fn import_mcp_from_deeplink(_ctx: &Arc<AppContext>, _args: Value) -> R
     // `deeplink` module. Fall back to a no-op for now; users can use
     // `import_mcp_from_apps` to populate from local CLI configs instead.
     Err(ApiError::Internal(
-        "deeplink MCP import requires the upstream private helper; use import_mcp_from_apps"
-            .into(),
+        "deeplink MCP import requires the upstream private helper; use import_mcp_from_apps".into(),
     ))
 }

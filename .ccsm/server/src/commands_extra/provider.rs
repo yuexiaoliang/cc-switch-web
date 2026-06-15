@@ -9,13 +9,8 @@ use std::sync::Arc;
 const UNIVERSAL_KEY: &str = "universal_providers";
 
 fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx
-        .opts
-        .data_dir
-        .join(".cc-switch")
-        .join("cc-switch.db");
-    rusqlite::Connection::open(&path)
-        .map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
+    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+    rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }
 
 fn read_universal(ctx: &Arc<AppContext>) -> Result<Map<String, JsonValue>> {

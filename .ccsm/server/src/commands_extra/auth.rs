@@ -66,7 +66,9 @@ pub async fn auth_start_login(_args: Value) -> Result<Value> {
 }
 
 pub async fn auth_poll_for_account(_args: Value) -> Result<Value> {
-    Err(ApiError::Internal("auth_poll_for_account is not supported on the headless server".into()))
+    Err(ApiError::Internal(
+        "auth_poll_for_account is not supported on the headless server".into(),
+    ))
 }
 
 pub async fn auth_list_accounts(_args: Value) -> Result<Value> {
