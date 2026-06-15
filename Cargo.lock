@@ -807,7 +807,7 @@ dependencies = [
 
 [[package]]
 name = "cc-switch"
-version = "3.16.2"
+version = "3.16.3"
 dependencies = [
  "anyhow",
  "arboard",
@@ -878,7 +878,7 @@ dependencies = [
 
 [[package]]
 name = "cc-switch-mini-server"
-version = "3.16.2"
+version = "3.16.3"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -900,6 +900,7 @@ dependencies = [
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
+ "toml_edit 0.22.27",
  "tower 0.4.13",
  "tower-http 0.5.2",
 ]
