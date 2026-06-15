@@ -6,7 +6,6 @@
 
 use clap::Parser;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::path::PathBuf;
 
 #[derive(Parser, Debug, Clone)]
 #[command(
@@ -24,19 +23,11 @@ pub struct Cli {
     #[arg(long, default_value_t = 3000, value_name = "PORT")]
     pub port: u16,
 
-    /// Directory used to persist the SQLite database and backups. When
-    /// explicitly provided, upstream's home-dir-relative paths are relocated
-    /// here, so the database lives at `<data-dir>/.cc-switch/cc-switch.db`
-    /// and host tool configs (Claude, Codex, Gemini, Hermes) live under
-    /// `<data-dir>/` as well.
-    #[arg(long, value_name = "DIR", env = "CC_SWITCH_MINI_DATA_DIR")]
-    pub data_dir: Option<PathBuf>,
-
     /// Override the config dir for the *host* tools (Claude / Codex / Gemini
     /// configs). Defaults to the user''s home directory exactly like the
     /// upstream Tauri build.
     #[arg(long, value_name = "DIR", env = "CC_SWITCH_MINI_CONFIG_DIR")]
-    pub config_dir: Option<PathBuf>,
+    pub config_dir: Option<std::path::PathBuf>,
 
     /// Optional bearer token. Every `/api/*` request (and SSE) must carry
     /// `Authorization: Bearer <token>`. When unset, only the loopback bind
@@ -55,26 +46,13 @@ pub struct Cli {
 #[derive(Debug, Clone)]
 pub struct Resolved {
     pub bind_addr: SocketAddr,
-    pub data_dir: PathBuf,
-    /// Whether `--data-dir` was explicitly provided on the CLI.
-    /// When true, the server relocates upstream's home-dir-relative paths
-    /// (database at `~/.cc-switch`, host tool configs) into `data_dir` so
-    /// that the data directory is actually self-contained.
-    pub explicit_data_dir: bool,
-    pub config_dir: Option<PathBuf>,
+    pub config_dir: Option<std::path::PathBuf>,
     pub token: Option<String>,
     pub spa_fallback: bool,
 }
 
 impl Resolved {
     pub fn resolve(cli: Cli) -> std::io::Result<Self> {
-        let explicit_data_dir = cli.data_dir.is_some();
-        let data_dir = match cli.data_dir {
-            Some(dir) => dir,
-            None => default_data_dir()?,
-        };
-        std::fs::create_dir_all(&data_dir)?;
-
         let bind_addr = SocketAddr::new(cli.host, cli.port);
 
         // Loudly warn if the user opted into a public bind without a token.
@@ -86,23 +64,11 @@ impl Resolved {
 
         Ok(Self {
             bind_addr,
-            data_dir,
-            explicit_data_dir,
             config_dir: cli.config_dir,
             token: cli.token,
             spa_fallback: !cli.no_spa_fallback,
         })
     }
-}
-
-fn default_data_dir() -> std::io::Result<PathBuf> {
-    // Use the same default as the upstream Tauri app so cc-switch-mini and
-    // the desktop build share the same database and host-tool configs without
-    // requiring --data-dir.
-    let home = dirs::home_dir()
-        .or_else(|| std::env::current_dir().ok())
-        .unwrap_or_else(|| PathBuf::from("."));
-    Ok(home.join(".cc-switch"))
 }
 
 fn is_loopback(addr: &IpAddr) -> bool {
@@ -139,8 +105,6 @@ impl Resolved {
     pub fn placeholder() -> Self {
         Self {
             bind_addr: "127.0.0.1:0".parse().unwrap(),
-            data_dir: std::path::PathBuf::from("/tmp/cc-switch-mini-test"),
-            explicit_data_dir: false,
             config_dir: None,
             token: None,
             spa_fallback: true,

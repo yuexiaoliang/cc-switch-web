@@ -8,13 +8,13 @@ use std::sync::Arc;
 
 const UNIVERSAL_KEY: &str = "universal_providers";
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }
 
-fn read_universal(ctx: &Arc<AppContext>) -> Result<Map<String, JsonValue>> {
-    let conn = open_db(ctx)?;
+fn read_universal(_ctx: &Arc<AppContext>) -> Result<Map<String, JsonValue>> {
+    let conn = open_db()?;
     let raw: Option<String> = conn
         .query_row(
             "SELECT value FROM settings WHERE key = ?1",
@@ -29,8 +29,8 @@ fn read_universal(ctx: &Arc<AppContext>) -> Result<Map<String, JsonValue>> {
     }
 }
 
-fn write_universal(ctx: &Arc<AppContext>, map: &Map<String, JsonValue>) -> Result<()> {
-    let conn = open_db(ctx)?;
+fn write_universal(_ctx: &Arc<AppContext>, map: &Map<String, JsonValue>) -> Result<()> {
+    let conn = open_db()?;
     let json = serde_json::to_string(map)?;
     conn.execute(
         "INSERT INTO settings (key, value) VALUES (?1, ?2) \

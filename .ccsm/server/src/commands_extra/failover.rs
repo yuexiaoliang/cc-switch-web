@@ -3,14 +3,14 @@
 use super::{require_arg, ApiError, AppContext, Result, Value};
 use std::sync::Arc;
 
-pub async fn get_failover_queue(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn get_failover_queue(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app: String = super::optional_arg(&args, "appType")
         .or_else(|| super::optional_arg(&args, "app"))
         .ok_or_else(|| ApiError::BadArgument {
             field: "appType".into(),
             message: "missing".into(),
         })?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let mut stmt = conn
         .prepare("SELECT id, name FROM providers WHERE app_type = ?1 AND in_failover_queue = 1 ORDER BY sort_index ASC, id ASC")
         .map_err(|e| ApiError::Internal(format!("prepare get_failover_queue: {e}")))?;
@@ -27,7 +27,7 @@ pub async fn get_failover_queue(ctx: &Arc<AppContext>, args: Value) -> Result<Va
     Ok(Value::Array(rows))
 }
 
-pub async fn add_to_failover_queue(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn add_to_failover_queue(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app: String = super::optional_arg(&args, "appType")
         .or_else(|| super::optional_arg(&args, "app"))
         .ok_or_else(|| ApiError::BadArgument {
@@ -36,7 +36,7 @@ pub async fn add_to_failover_queue(ctx: &Arc<AppContext>, args: Value) -> Result
         })?;
     let provider_id: String = require_arg(&args, "providerId")?;
     let priority: i64 = require_arg(&args, "priority")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "UPDATE providers SET in_failover_queue = 1, sort_index = ?1 \
          WHERE id = ?2 AND app_type = ?3",
@@ -46,7 +46,7 @@ pub async fn add_to_failover_queue(ctx: &Arc<AppContext>, args: Value) -> Result
     Ok(Value::Bool(true))
 }
 
-pub async fn remove_from_failover_queue(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn remove_from_failover_queue(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app: String = super::optional_arg(&args, "appType")
         .or_else(|| super::optional_arg(&args, "app"))
         .ok_or_else(|| ApiError::BadArgument {
@@ -54,7 +54,7 @@ pub async fn remove_from_failover_queue(ctx: &Arc<AppContext>, args: Value) -> R
             message: "missing".into(),
         })?;
     let provider_id: String = require_arg(&args, "providerId")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "UPDATE providers SET in_failover_queue = 0 \
          WHERE id = ?1 AND app_type = ?2",
@@ -64,14 +64,14 @@ pub async fn remove_from_failover_queue(ctx: &Arc<AppContext>, args: Value) -> R
     Ok(Value::Bool(true))
 }
 
-pub async fn get_auto_failover_enabled(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn get_auto_failover_enabled(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app: String = super::optional_arg(&args, "appType")
         .or_else(|| super::optional_arg(&args, "app"))
         .ok_or_else(|| ApiError::BadArgument {
             field: "appType".into(),
             message: "missing".into(),
         })?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let enabled: Option<i64> = conn
         .query_row(
             "SELECT auto_failover_enabled FROM proxy_config WHERE app_type = ?1",
@@ -82,7 +82,7 @@ pub async fn get_auto_failover_enabled(ctx: &Arc<AppContext>, args: Value) -> Re
     Ok(Value::Bool(enabled.map(|v| v != 0).unwrap_or(false)))
 }
 
-pub async fn set_auto_failover_enabled(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn set_auto_failover_enabled(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app: String = super::optional_arg(&args, "appType")
         .or_else(|| super::optional_arg(&args, "app"))
         .ok_or_else(|| ApiError::BadArgument {
@@ -90,7 +90,7 @@ pub async fn set_auto_failover_enabled(ctx: &Arc<AppContext>, args: Value) -> Re
             message: "missing".into(),
         })?;
     let enabled: bool = require_arg(&args, "enabled")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "UPDATE proxy_config SET auto_failover_enabled = ?1 WHERE app_type = ?2",
         rusqlite::params![enabled as i64, app],
@@ -100,7 +100,7 @@ pub async fn set_auto_failover_enabled(ctx: &Arc<AppContext>, args: Value) -> Re
 }
 
 pub async fn get_available_providers_for_failover(
-    ctx: &Arc<AppContext>,
+    _ctx: &Arc<AppContext>,
     args: Value,
 ) -> Result<Value> {
     let app: String = super::optional_arg(&args, "appType")
@@ -109,7 +109,7 @@ pub async fn get_available_providers_for_failover(
             field: "appType".into(),
             message: "missing".into(),
         })?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let mut stmt = conn
         .prepare("SELECT id, name FROM providers WHERE app_type = ?1 ORDER BY sort_index ASC")
         .map_err(|e| {
@@ -128,7 +128,7 @@ pub async fn get_available_providers_for_failover(
     Ok(Value::Array(rows))
 }
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

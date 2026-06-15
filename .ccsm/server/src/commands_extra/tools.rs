@@ -119,8 +119,8 @@ pub async fn get_coding_plan_quota(args: Value) -> Result<Value> {
     Ok(serde_json::to_value(&v)?)
 }
 
-pub async fn get_log_config(ctx: &Arc<AppContext>) -> Result<Value> {
-    let conn = open_db(ctx)?;
+pub async fn get_log_config(_ctx: &Arc<AppContext>) -> Result<Value> {
+    let conn = open_db()?;
     let json: Option<String> = conn
         .query_row(
             "SELECT value FROM settings WHERE key = 'log_config'",
@@ -140,9 +140,9 @@ pub async fn get_log_config(ctx: &Arc<AppContext>) -> Result<Value> {
     }))
 }
 
-pub async fn set_log_config(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn set_log_config(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let config: Value = require_arg(&args, "config")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let json = serde_json::to_string(&config)?;
     conn.execute(
         "INSERT INTO settings (key, value) VALUES ('log_config', ?1) \
@@ -171,7 +171,7 @@ pub async fn get_app_config_dir_override() -> Result<Value> {
         .unwrap_or(Value::Null))
 }
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

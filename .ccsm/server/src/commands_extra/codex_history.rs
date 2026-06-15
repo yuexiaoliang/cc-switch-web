@@ -448,13 +448,13 @@ fn sqlite_home_from_codex_config(config_text: &str) -> Option<PathBuf> {
 
 fn resolve_user_path(raw: &str) -> PathBuf {
     if raw == "~" {
-        return home_dir();
+        return crate::state::home_dir();
     }
     if let Some(rest) = raw.strip_prefix("~/") {
-        return home_dir().join(rest);
+        return crate::state::home_dir().join(rest);
     }
     if let Some(rest) = raw.strip_prefix("~\\") {
-        return home_dir().join(rest);
+        return crate::state::home_dir().join(rest);
     }
     PathBuf::from(raw)
 }
@@ -553,37 +553,20 @@ fn read_codex_config_text() -> String {
 }
 
 fn codex_config_dir() -> PathBuf {
-    home_dir().join(".codex")
+    crate::state::home_dir().join(".codex")
 }
 
 fn official_history_unify_backup_parent() -> PathBuf {
-    app_config_dir()
+    crate::state::app_config_dir()
         .join("backups")
         .join(OFFICIAL_UNIFY_MIGRATION_NAME)
 }
 
 fn migration_backup_root(migration_name: &str) -> PathBuf {
-    app_config_dir()
+    crate::state::app_config_dir()
         .join("backups")
         .join(migration_name)
         .join(chrono::Local::now().format("%Y%m%d_%H%M%S").to_string())
-}
-
-fn app_config_dir() -> PathBuf {
-    home_dir().join(".cc-switch")
-}
-
-fn home_dir() -> PathBuf {
-    if let Ok(home) = std::env::var("CC_SWITCH_TEST_HOME") {
-        let trimmed = home.trim();
-        if !trimmed.is_empty() {
-            return PathBuf::from(trimmed);
-        }
-    }
-    dirs::home_dir().unwrap_or_else(|| {
-        log::warn!("无法获取用户主目录，回退到当前目录");
-        std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-    })
 }
 
 fn canonical_dir_string(dir: &Path) -> String {

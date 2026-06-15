@@ -10,9 +10,9 @@ use std::sync::Arc;
 
 const COLUMNS: &str = "id, app_type, name, content, description, enabled, created_at, updated_at";
 
-pub async fn get_prompts(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn get_prompts(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app = require_app_str(&args)?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let mut stmt = conn
         .prepare(&format!(
             "SELECT {COLUMNS} FROM prompts WHERE app_type = ?1 ORDER BY created_at ASC, id ASC"
@@ -37,7 +37,7 @@ pub async fn get_prompts(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     Ok(Value::Object(map))
 }
 
-pub async fn upsert_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn upsert_prompt(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app = require_app_str(&args)?;
     let id: String = require_arg(&args, "id")?;
     let prompt: Value = require_arg(&args, "prompt")?;
@@ -60,7 +60,7 @@ pub async fn upsert_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> 
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
     let now = chrono::Utc::now().timestamp();
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "INSERT INTO prompts (id, app_type, name, content, description, enabled, created_at, updated_at) \
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) \
@@ -76,10 +76,10 @@ pub async fn upsert_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> 
     Ok(Value::Null)
 }
 
-pub async fn delete_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn delete_prompt(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app = require_app_str(&args)?;
     let id: String = require_arg(&args, "id")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "DELETE FROM prompts WHERE id = ?1 AND app_type = ?2",
         rusqlite::params![id, app.as_str()],
@@ -88,11 +88,11 @@ pub async fn delete_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> 
     Ok(Value::Null)
 }
 
-pub async fn enable_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn enable_prompt(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let app = require_app_str(&args)?;
     let id: String = require_arg(&args, "id")?;
     let now = chrono::Utc::now().timestamp();
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let affected = conn
         .execute(
             "UPDATE prompts SET enabled = 1, updated_at = ?1 WHERE id = ?2 AND app_type = ?3",
@@ -108,7 +108,7 @@ pub async fn enable_prompt(ctx: &Arc<AppContext>, args: Value) -> Result<Value> 
     Ok(Value::Null)
 }
 
-pub async fn import_prompt_from_file(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn import_prompt_from_file(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     // The upstream "import" reads CLAUDE.md / AGENTS.md from the user's
     // home (or app config dir). We replicate the behaviour minimally by
     // looking up the conventional prompt file path for the app and
@@ -133,7 +133,7 @@ pub async fn import_prompt_from_file(ctx: &Arc<AppContext>, args: Value) -> Resu
         chrono::Utc::now().timestamp()
     );
     let now = chrono::Utc::now().timestamp();
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "INSERT INTO prompts (id, app_type, name, content, description, enabled, created_at, updated_at) \
          VALUES (?1, ?2, ?3, ?4, NULL, 1, ?5, ?5)",
@@ -178,7 +178,7 @@ fn row_to_json(row: &rusqlite::Row<'_>) -> rusqlite::Result<Value> {
     }))
 }
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

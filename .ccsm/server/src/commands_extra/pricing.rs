@@ -13,8 +13,8 @@ pub struct ModelPricingInfo {
     pub cache_creation_cost_per_million: String,
 }
 
-pub async fn get_model_pricing(ctx: &Arc<AppContext>) -> Result<Value> {
-    let conn = open_db(ctx)?;
+pub async fn get_model_pricing(_ctx: &Arc<AppContext>) -> Result<Value> {
+    let conn = open_db()?;
     let mut stmt = conn
         .prepare(
             "SELECT model_id, display_name, input_cost_per_million, output_cost_per_million,
@@ -40,14 +40,14 @@ pub async fn get_model_pricing(ctx: &Arc<AppContext>) -> Result<Value> {
     Ok(Value::Array(rows))
 }
 
-pub async fn update_model_pricing(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn update_model_pricing(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let model_id: String = require_arg(&args, "modelId")?;
     let display_name: String = require_arg(&args, "displayName")?;
     let input_cost: String = require_arg(&args, "inputCost")?;
     let output_cost: String = require_arg(&args, "outputCost")?;
     let cache_read_cost: String = require_arg(&args, "cacheReadCost")?;
     let cache_creation_cost: String = require_arg(&args, "cacheCreationCost")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute(
         "INSERT OR REPLACE INTO model_pricing (
             model_id, display_name, input_cost_per_million, output_cost_per_million,
@@ -66,15 +66,15 @@ pub async fn update_model_pricing(ctx: &Arc<AppContext>, args: Value) -> Result<
     Ok(Value::Null)
 }
 
-pub async fn delete_model_pricing(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn delete_model_pricing(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let model_id: String = require_arg(&args, "modelId")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     conn.execute("DELETE FROM model_pricing WHERE model_id = ?1", [model_id])
         .map_err(|e| ApiError::Internal(format!("delete_model_pricing: {e}")))?;
     Ok(Value::Null)
 }
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

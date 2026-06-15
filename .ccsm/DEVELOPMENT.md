@@ -121,16 +121,11 @@ prominent example — see their implementation for the pattern.
 | --- | --- | --- | --- |
 | `--host` | – | `127.0.0.1` | `0.0.0.0` to expose the UI; pair with `--token` |
 | `--port` | – | `3000` | listen port |
-| `--data-dir` | `CC_SWITCH_MINI_DATA_DIR` | `~/.cc-switch` | override the upstream default data directory; when set, becomes the effective home for upstream path resolution |
 | `--config-dir` | `CC_SWITCH_MINI_CONFIG_DIR` | – | override where Claude / Codex / Gemini read their live configs |
 | `--token` | `CC_SWITCH_MINI_TOKEN` | – | bearer token; every `/api/*` request must carry `Authorization: Bearer <token>` |
 | `--no-spa-fallback` | – | off | disable `index.html` fallback for unknown paths |
 
-The `--data-dir` flag is wired through the upstream
-`config::get_home_dir` escape hatch (`CC_SWITCH_TEST_HOME` env var).
-The upstream re-exports only a few `config` helpers, so the
-cc-switch-mini path computations are duplicated for the apps where
-the helper is unreachable (e.g. `get_claude_config_dir`).
+cc-switch-mini uses the upstream Tauri app directory layout verbatim. The upstream re-exports only a few `config` helpers, so the cc-switch-mini path computations are duplicated for the apps where the helper is unreachable (e.g. `get_claude_config_dir`). Tests can relocate the home directory via the `CC_SWITCH_TEST_HOME` env var.
 
 ## Auth model
 

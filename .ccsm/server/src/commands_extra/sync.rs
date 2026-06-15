@@ -11,18 +11,22 @@ use std::sync::Arc;
 const S3_SETTINGS_KEY: &str = "s3_sync_settings";
 const WEBDAV_SETTINGS_KEY: &str = "webdav_sync_settings";
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn app_dir() -> std::path::PathBuf {
+    crate::state::app_config_dir()
+}
+
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = app_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }
 
-pub async fn create_db_backup(ctx: &Arc<AppContext>) -> Result<Value> {
-    let _conn = open_db(ctx)?;
+pub async fn create_db_backup(_ctx: &Arc<AppContext>) -> Result<Value> {
+    let _conn = open_db()?;
     // Reuse the upstream `Database` struct's public helpers. The
     // `database::backup` module is private, so we approximate by
     // copying the db file to a timestamped name in the same directory.
     let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
-    let src = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+    let src = app_dir().join("cc-switch.db");
     let dest = src
         .parent()
         .unwrap()
@@ -38,8 +42,8 @@ pub async fn create_db_backup(ctx: &Arc<AppContext>) -> Result<Value> {
     }))
 }
 
-pub async fn list_db_backups(ctx: &Arc<AppContext>) -> Result<Value> {
-    let dir = ctx.opts.data_dir.join(".cc-switch");
+pub async fn list_db_backups(_ctx: &Arc<AppContext>) -> Result<Value> {
+    let dir = app_dir();
     let mut out = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&dir) {
         for e in entries.flatten() {
@@ -67,45 +71,29 @@ pub async fn list_db_backups(ctx: &Arc<AppContext>) -> Result<Value> {
     Ok(Value::Array(out))
 }
 
-pub async fn delete_db_backup(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn delete_db_backup(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let id: String = require_arg(&args, "id")?;
-    let p = ctx
-        .opts
-        .data_dir
-        .join(".cc-switch")
-        .join(format!("{id}.bak"));
+    let p = app_dir().join(format!("{id}.bak"));
     let _ = std::fs::remove_file(&p);
-    let _ = conn_open_read(ctx).map_err(ApiError::from)?; // touch connection to keep API uniform
+    let _ = conn_open_read().map_err(ApiError::from)?; // touch connection to keep API uniform
     Ok(Value::Null)
 }
 
-pub async fn restore_db_backup(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn restore_db_backup(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let id: String = require_arg(&args, "id")?;
-    let src = ctx
-        .opts
-        .data_dir
-        .join(".cc-switch")
-        .join(format!("{id}.bak"));
-    let dest = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+    let src = app_dir().join(format!("{id}.bak"));
+    let dest = app_dir().join("cc-switch.db");
     if src.exists() {
         std::fs::copy(&src, &dest).map_err(|e| ApiError::Internal(format!("restore copy: {e}")))?;
     }
     Ok(Value::Null)
 }
 
-pub async fn rename_db_backup(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn rename_db_backup(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let id: String = require_arg(&args, "id")?;
     let new_name: String = require_arg(&args, "newName")?;
-    let src = ctx
-        .opts
-        .data_dir
-        .join(".cc-switch")
-        .join(format!("{id}.bak"));
-    let dst = ctx
-        .opts
-        .data_dir
-        .join(".cc-switch")
-        .join(format!("{new_name}.bak"));
+    let src = app_dir().join(format!("{id}.bak"));
+    let dst = app_dir().join(format!("{new_name}.bak"));
     if src.exists() {
         std::fs::rename(&src, &dst)
             .map_err(|e| ApiError::Internal(format!("rename backup: {e}")))?;
@@ -113,18 +101,16 @@ pub async fn rename_db_backup(ctx: &Arc<AppContext>, args: Value) -> Result<Valu
     Ok(Value::Null)
 }
 
-fn conn_open_read(
-    ctx: &Arc<AppContext>,
-) -> std::result::Result<rusqlite::Connection, rusqlite::Error> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn conn_open_read() -> std::result::Result<rusqlite::Connection, rusqlite::Error> {
+    let path = app_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path)
 }
 
 // ---- S3 sync ----
 
-pub async fn s3_sync_save_settings(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn s3_sync_save_settings(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let settings: Value = require_arg(&args, "settings")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let json = serde_json::to_string(&settings)?;
     conn.execute(
         "INSERT INTO settings (key, value) VALUES (?1, ?2) \
@@ -157,9 +143,9 @@ pub async fn s3_sync_fetch_remote_info(_args: Value) -> Result<Value> {
 
 // ---- WebDAV sync ----
 
-pub async fn webdav_sync_save_settings(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn webdav_sync_save_settings(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     let settings: Value = require_arg(&args, "settings")?;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let json = serde_json::to_string(&settings)?;
     conn.execute(
         "INSERT INTO settings (key, value) VALUES (?1, ?2) \

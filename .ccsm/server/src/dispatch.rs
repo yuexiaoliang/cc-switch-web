@@ -70,7 +70,6 @@ pub async fn health(State(ctx): State<Arc<crate::AppContext>>) -> Json<Value> {
         "version": env!("CARGO_PKG_VERSION"),
         "subscribers": ctx.events.receiver_count(),
         "bind": ctx.opts.bind_addr.to_string(),
-        "data_dir": ctx.opts.data_dir.display().to_string(),
     }))
 }
 
@@ -448,11 +447,11 @@ mod provider {
         Ok(serde_json::to_value(&result)?)
     }
 
-    pub async fn update_sort(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
+    pub async fn update_sort(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
         let app = require_app(&args)?;
         let app_str = app.as_str().to_string();
         let updates: Vec<SortUpdateDto> = require_arg(&args, "updates")?;
-        let conn = open_db(&ctx.opts.data_dir)?;
+        let conn = open_db()?;
         let tx = conn.unchecked_transaction()?;
         for update in updates {
             tx.execute(
@@ -566,13 +565,13 @@ mod proxy {
         Ok(serde_json::to_value(&c)?)
     }
 
-    pub async fn update_config(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
+    pub async fn update_config(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
         let patch: Value = require_arg(&args, "config")?;
         let map = patch.as_object().ok_or_else(|| ApiError::BadArgument {
             field: "config".into(),
             message: "config must be a JSON object".into(),
         })?;
-        let conn = open_db(&ctx.opts.data_dir)?;
+        let conn = open_db()?;
         let tx = conn.unchecked_transaction()?;
         for app in ["claude", "codex", "gemini"] {
             tx.execute(
@@ -717,7 +716,7 @@ mod stream_check {
         })
     }
 
-    pub async fn one(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
+    pub async fn one(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
         let app = require_app(&args)?;
         let provider_id: String = require_arg(&args, "providerId")?;
         // Scope the connection so it is dropped before we hit the network
@@ -725,7 +724,7 @@ mod stream_check {
         // holding it across an `.await` would make the future `!Send`,
         // which then breaks the axum `Handler` trait.
         let (name, base_url, api_key, cfg) = {
-            let conn = open_db(&ctx.opts.data_dir)?;
+            let conn = open_db()?;
             let cfg = read_config(&conn)?;
             match resolve_credentials(&conn, &app, &provider_id)? {
                 Some(p) => (p.0, p.1, p.2, cfg),
@@ -747,14 +746,14 @@ mod stream_check {
         Ok(serde_json::to_value(&result)?)
     }
 
-    pub async fn all(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
+    pub async fn all(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
         let app = require_app(&args)?;
         // Collect (provider_id, credentials) and the global config up
         // front so we can drop the sqlite connection before the
         // network calls start. See `one` for the full reasoning.
         let mut probes: Vec<(String, String, String, String)> = Vec::new();
         let cfg = {
-            let conn = open_db(&ctx.opts.data_dir)?;
+            let conn = open_db()?;
             let cfg = read_config(&conn)?;
             let mut stmt = conn
                 .prepare("SELECT id FROM providers WHERE app_type = ?1")
@@ -780,15 +779,15 @@ mod stream_check {
         Ok(serde_json::to_value(&results)?)
     }
 
-    pub async fn get_config(ctx: &Arc<crate::AppContext>) -> Result<Value> {
-        let conn = open_db(&ctx.opts.data_dir)?;
+    pub async fn get_config(_ctx: &Arc<crate::AppContext>) -> Result<Value> {
+        let conn = open_db()?;
         let cfg = read_config(&conn)?;
         Ok(serde_json::to_value(&cfg)?)
     }
 
-    pub async fn save_config(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
+    pub async fn save_config(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
         let cfg: Config = require_arg(&args, "config")?;
-        let conn = open_db(&ctx.opts.data_dir)?;
+        let conn = open_db()?;
         write_config(&conn, &cfg)?;
         Ok(Value::Null)
     }
@@ -873,7 +872,7 @@ mod frontend {
         Ok(json!(true))
     }
 
-    pub async fn get_config_dir(ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
+    pub async fn get_config_dir(_ctx: &Arc<crate::AppContext>, args: Value) -> Result<Value> {
         let app = require_app(&args)?;
         let path = match app {
             cc_switch_lib::AppType::Claude => dirs::home_dir()
@@ -900,19 +899,22 @@ mod frontend {
                 .unwrap_or_default(),
         };
         let path_str = if path.as_os_str().is_empty() {
-            ctx.opts.data_dir.join(app.as_str()).display().to_string()
+            crate::state::app_config_dir()
+                .join(app.as_str())
+                .display()
+                .to_string()
         } else {
             path.display().to_string()
         };
         Ok(Value::String(path_str))
     }
 
-    pub async fn get_app_config_path(ctx: &Arc<crate::AppContext>) -> Result<Value> {
+    pub async fn get_app_config_path(_ctx: &Arc<crate::AppContext>) -> Result<Value> {
         let upstream = cc_switch_lib::get_app_config_path()
             .await
             .map_err(ApiError::from)?;
         let path = if upstream.is_empty() {
-            ctx.opts.data_dir.join(".cc-switch").join("config.json")
+            crate::state::app_config_dir().join("config.json")
         } else {
             std::path::PathBuf::from(upstream)
         };
@@ -923,10 +925,14 @@ mod frontend {
         Ok(json!([]))
     }
 
-    pub async fn get_claude_code_config_path(ctx: &Arc<crate::AppContext>) -> Result<Value> {
+    pub async fn get_claude_code_config_path(_ctx: &Arc<crate::AppContext>) -> Result<Value> {
         let path = dirs::home_dir()
             .map(|h| h.join(".claude").join("config.json"))
-            .unwrap_or_else(|| ctx.opts.data_dir.join(".claude").join("config.json"));
+            .unwrap_or_else(|| {
+                crate::state::app_config_dir()
+                    .join(".claude")
+                    .join("config.json")
+            });
         Ok(Value::String(path.display().to_string()))
     }
 }
@@ -1071,7 +1077,7 @@ fn optional_arg<T: for<'de> Deserialize<'de>>(args: &Value, field: &str) -> Opti
         .and_then(|v| serde_json::from_value(v.clone()).ok())
 }
 
-fn open_db(data_dir: &std::path::Path) -> Result<rusqlite::Connection> {
-    let path = data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

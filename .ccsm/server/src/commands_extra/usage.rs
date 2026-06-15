@@ -101,7 +101,7 @@ pub async fn get_model_stats(ctx: &Arc<AppContext>, args: Value) -> Result<Value
     Ok(serde_json::to_value(&result)?)
 }
 
-pub async fn get_request_logs(ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
+pub async fn get_request_logs(_ctx: &Arc<AppContext>, args: Value) -> Result<Value> {
     // LogFilters is in the private `usage_stats` module. We accept a JSON
     // blob and use the upstream `get_request_logs` command via the
     // re-export, which accepts the same type via the Tauri `State` - but
@@ -110,7 +110,7 @@ pub async fn get_request_logs(ctx: &Arc<AppContext>, args: Value) -> Result<Valu
     let _filters: Option<Value> = super::optional_arg(&args, "filters");
     let _page = super::optional_u64(&args, "page").unwrap_or(1) as u32;
     let _page_size = super::optional_u64(&args, "pageSize").unwrap_or(50) as u32;
-    let conn = open_db(ctx)?;
+    let conn = open_db()?;
     let total: i64 = conn
         .query_row("SELECT COUNT(*) FROM request_logs", [], |row| row.get(0))
         .unwrap_or(0);
@@ -161,7 +161,7 @@ pub async fn get_usage_data_sources(_ctx: &Arc<AppContext>) -> Result<Value> {
     Ok(Value::Array(Vec::new()))
 }
 
-fn open_db(ctx: &Arc<AppContext>) -> Result<rusqlite::Connection> {
-    let path = ctx.opts.data_dir.join(".cc-switch").join("cc-switch.db");
+fn open_db() -> Result<rusqlite::Connection> {
+    let path = crate::state::app_config_dir().join("cc-switch.db");
     rusqlite::Connection::open(&path).map_err(|e| ApiError::Internal(format!("open {path:?}: {e}")))
 }

@@ -140,9 +140,13 @@ async fn shutdown_signal() {
 #[cfg(test)]
 impl AppContext {
     /// A placeholder context for unit tests. Backed by an in-memory database
-    /// so tests can run in parallel without fighting over `~/.cc-switch/cc-switch.db`.
+    /// and a relocated home directory so tests do not touch `~/.cc-switch`.
     pub fn placeholder() -> Self {
         use crate::events::EventBus;
+        let temp_home =
+            std::env::temp_dir().join(format!("cc-switch-mini-test-{}", std::process::id()));
+        std::fs::create_dir_all(&temp_home).expect("create temp test home");
+        std::env::set_var("CC_SWITCH_TEST_HOME", &temp_home);
         let db = cc_switch_lib::Database::memory().expect("test memory database init");
         Self {
             state: Arc::new(cc_switch_lib::AppState::new(Arc::new(db))),
