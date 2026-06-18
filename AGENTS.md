@@ -12,13 +12,13 @@ project. After reading it you should be able to:
 - The repository is a fork of [cc-switch](https://github.com/farion1231/cc-switch); all new code lives under `.ccsm/`.
 - **Do not modify `src/` or `src-tauri/`** (except as part of the sync-upstream flow).
 - Backend is an Axum service in `.ccsm/server/`; frontend is a TypeScript mock in `.ccsm/bridge/`; the two are wired together via pnpm `overrides`.
-- To produce a release artifact: `pnpm run build:renderer && cargo build --release -p cc-switch-mini-server`.
-- Full design is in [`cc-switch-mini.md`](./cc-switch-mini.md); user docs in [`README.md`](./README.md); implementation details in [`.ccsm/DEVELOPMENT.md`](./.ccsm/DEVELOPMENT.md).
+- To produce a release artifact: `pnpm run build:renderer && cargo build --release -p cc-switch-web-server`.
+- Full design is in [`cc-switch-web.md`](./cc-switch-web.md); user docs in [`README.md`](./README.md); implementation details in [`.ccsm/DEVELOPMENT.md`](./.ccsm/DEVELOPMENT.md).
 
 ## Repository layout
 
 ```
-cc-switch-mini/
+cc-switch-web/
   src/                       # upstream frontend (Vite + React), do not modify
   src-tauri/                 # upstream Rust lib (cc_switch_lib), do not modify
   .ccsm/                     # this project's additions, all changes go here
@@ -56,8 +56,8 @@ pnpm install --frozen-lockfile
 
 # 2. Verify the toolchain
 pnpm typecheck
-cargo check -p cc-switch-mini-server
-cargo test -p cc-switch-mini-server
+cargo check -p cc-switch-web-server
+cargo test -p cc-switch-web-server
 ```
 
 ### Day-to-day loop
@@ -69,7 +69,7 @@ pnpm run dev:renderer
 # change vite.config.ts's server.port or run the backend on a different port.
 
 # Backend: cargo run, auto-restarts on .ccsm/server/src/** changes
-cargo run -p cc-switch-mini-server -- --port 3000
+cargo run -p cc-switch-web-server -- --port 3000
 # Note: dev:renderer takes 3000, so run the backend on e.g. 3001 first.
 
 # To use the Vite dev server for the frontend and bridge to the backend,
@@ -83,8 +83,8 @@ cargo run -p cc-switch-mini-server -- --port 3000
 
 ```bash
 pnpm run build:renderer    # writes dist/
-cargo build --release -p cc-switch-mini-server
-./target/release/cc-switch-mini --port 3000
+cargo build --release -p cc-switch-web-server
+./target/release/cc-switch-web --port 3000
 # Open http://localhost:3000/
 ```
 
@@ -109,7 +109,7 @@ git remote add upstream https://github.com/farion1231/cc-switch.git
    "new_command" => provider::new_command(ctx, args).await,
    ```
 2. In the matching `mod provider / settings / proxy / ...` inside `dispatch.rs`, add `pub async fn new_command(...)`. Prefer calling an upstream service (if the types are public); otherwise talk to the db directly via rusqlite.
-3. Run `cargo check -p cc-switch-mini-server` to confirm it compiles.
+3. Run `cargo check -p cc-switch-web-server` to confirm it compiles.
 4. Run `bash .ccsm/scripts/check-coverage.sh` to confirm coverage.
 5. Add a minimal unit test in `#[cfg(test)] mod tests` at the bottom of `dispatch.rs`.
 
@@ -134,10 +134,10 @@ Edit `.ccsm/bridge/<package>/<file>.ts` directly. The `exports` field in `packag
 ## Conventions
 
 - **Cargo workspace members**: `src-tauri` and `.ccsm/server`. `src-tauri` is not a separate workspace member — it is itself the package.
-- **Binary name**: `cc-switch-mini` (release); the package name is `cc-switch-mini-server` (to avoid colliding with upstream's `cc-switch`).
-- **Versioning**: tracks the upstream tag; the workspace `package.version` is the single source of truth. cc-switch-mini-only changes use SemVer build metadata (`3.16.2+ccs.1`).
+- **Binary name**: `cc-switch-web` (release); the package name is `cc-switch-web-server` (to avoid colliding with upstream's `cc-switch`).
+- **Versioning**: tracks the upstream tag; the workspace `package.version` is the single source of truth. cc-switch-web-only changes use SemVer build metadata (`3.16.2+ccs.1`).
 - **Error handling**: every handler returns `Result<Value, ApiError>`. `ApiError` in `.ccsm/server/src/error.rs` already implements `IntoResponse`, so `?` works.
-- **Logging**: use the `log` crate (not `println!`); tune verbosity with `RUST_LOG=info,cc_switch_mini=debug`.
+- **Logging**: use the `log` crate (not `println!`); tune verbosity with `RUST_LOG=info,cc_switch_web=debug`.
 - **Do not add dependencies to `src-tauri/Cargo.toml`** — that would pollute upstream. `.ccsm/server/Cargo.toml` is free to grow.
 
 ## Common pitfalls
@@ -153,7 +153,7 @@ Edit `.ccsm/bridge/<package>/<file>.ts` directly. The `exports` field in `packag
 
 | Want to know... | Look at |
 | --- | --- |
-| Why this project exists | [`cc-switch-mini.md`](./cc-switch-mini.md) |
+| Why this project exists | [`cc-switch-web.md`](./cc-switch-web.md) |
 | How to install / use | [`README.md`](./README.md) |
 | Known trade-offs / implementation details | [`.ccsm/DEVELOPMENT.md`](./.ccsm/DEVELOPMENT.md) |
 | What CI runs / where it runs | [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) |
@@ -165,8 +165,8 @@ Edit `.ccsm/bridge/<package>/<file>.ts` directly. The `exports` field in `packag
 Minimal validation (local):
 ```bash
 pnpm typecheck
-cargo check -p cc-switch-mini-server
-cargo test -p cc-switch-mini-server
+cargo check -p cc-switch-web-server
+cargo test -p cc-switch-web-server
 bash .ccsm/scripts/check-coverage.sh
 ```
 
@@ -177,8 +177,8 @@ bash .ccsm/scripts/check-coverage.sh
 Full CI mirror (before release):
 ```bash
 # fmt + clippy
-cargo fmt --check -p cc-switch-mini-server
-cargo clippy -p cc-switch-mini-server --lib -- -D warnings
+cargo fmt --check -p cc-switch-web-server
+cargo clippy -p cc-switch-web-server --lib -- -D warnings
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
 cargo clippy --manifest-path src-tauri/Cargo.toml --lib -- -D warnings
 

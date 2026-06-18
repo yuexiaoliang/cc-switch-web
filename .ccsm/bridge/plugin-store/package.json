@@ -2,7 +2,7 @@
   "name": "@tauri-apps/plugin-store",
   "version": "0.0.0-ccsm",
   "private": true,
-  "description": "cc-switch-mini bridge for @tauri-apps/plugin-store - backed by localStorage.",
+  "description": "cc-switch-web bridge for @tauri-apps/plugin-store - backed by localStorage.",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",

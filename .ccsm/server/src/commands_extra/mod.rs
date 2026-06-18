@@ -1,4 +1,4 @@
-//! Extended dispatch handlers for cc-switch-mini.
+//! Extended dispatch handlers for cc-switch-web.
 //!
 //! This module contains the additional Tauri-command handlers that are not
 //! part of the original 25 P0 commands in `dispatch.rs`. Each handler is a

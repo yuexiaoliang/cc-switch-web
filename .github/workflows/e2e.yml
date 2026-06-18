@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Install Linux system deps
-        # The cc-switch-mini server pulls in the upstream `cc-switch`
+        # The cc-switch-web server pulls in the upstream `cc-switch`
         # crate transitively, which builds `webkit2gtk-sys` on Linux.
         # That has the same dep set as the upstream Tauri build.
         run: |
@@ -77,15 +77,15 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build:renderer
-          cargo build --release -p cc-switch-mini-server
+          cargo build --release -p cc-switch-web-server
 
       - name: Smoke test 1/8 - binary metadata
-        # A user downloads `cc-switch-mini` and wants to confirm it is
+        # A user downloads `cc-switch-web` and wants to confirm it is
         # actually a binary and what the version string says.
         run: |
-          test -x ./target/release/cc-switch-mini
-          ./target/release/cc-switch-mini --version
-          ./target/release/cc-switch-mini --help | head -20
+          test -x ./target/release/cc-switch-web
+          ./target/release/cc-switch-web --version
+          ./target/release/cc-switch-web --help | head -20
 
       - name: Smoke test 2/8 - data dir is created on first run
         # Use a temp data dir under $GITHUB_WORKSPACE; mirror the
@@ -102,7 +102,7 @@ jobs:
           # Boot the server briefly to trigger the init path. We kill
           # it once the health endpoint answers, then bring it back up
           # for the rest of the e2e.
-          ./target/release/cc-switch-mini \
+          ./target/release/cc-switch-web \
             --host 127.0.0.1 --port 13000 \
             --data-dir "$DATA_DIR" &
           SERVER_PID=$!
@@ -129,7 +129,7 @@ jobs:
           curl -fsS http://127.0.0.1:$PORT/api/version | tee /tmp/version.json
           echo
           jq -e '.status == "ok"'            /tmp/health.json
-          jq -e '.name == "cc-switch-mini"'   /tmp/version.json
+          jq -e '.name == "cc-switch-web"'   /tmp/version.json
           jq -e '.version | length > 0'       /tmp/version.json
 
       - name: Smoke test 4/8 - SPA index loads
@@ -248,7 +248,7 @@ jobs:
             sleep 1
           done
           # Bring it back up against the same data dir.
-          ./target/release/cc-switch-mini \
+          ./target/release/cc-switch-web \
             --host 127.0.0.1 --port 13000 \
             --data-dir "$DATA_DIR" &
           echo $! > server.pid

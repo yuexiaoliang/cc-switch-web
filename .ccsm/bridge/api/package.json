@@ -2,7 +2,7 @@
   "name": "@tauri-apps/api",
   "version": "0.0.0-ccsm",
   "private": true,
-  "description": "cc-switch-mini bridge for @tauri-apps/api - replaces IPC with HTTP + SSE.",
+  "description": "cc-switch-web bridge for @tauri-apps/api - replaces IPC with HTTP + SSE.",
   "type": "module",
   "main": "./core.ts",
   "types": "./core.ts",

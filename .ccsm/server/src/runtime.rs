@@ -30,7 +30,7 @@ pub async fn run(opts: Resolved) -> Result<()> {
 
 fn init_logging() {
     use env_logger::{Builder, Env};
-    let env = Env::default().default_filter_or("info,cc_switch_mini=debug");
+    let env = Env::default().default_filter_or("info,cc_switch_web=debug");
     Builder::from_env(env)
         .format_timestamp_secs()
         .format_module_path(false)

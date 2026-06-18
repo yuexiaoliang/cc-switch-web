@@ -5,7 +5,7 @@
 //!
 //! ## Directory layout
 //!
-//! cc-switch-mini uses the upstream Tauri app layout verbatim. The database
+//! cc-switch-web uses the upstream Tauri app layout verbatim. The database
 //! and all host-tool configs live at the same paths as the desktop build, so
 //! users can switch between the two without data migration:
 //!

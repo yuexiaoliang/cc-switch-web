@@ -1,4 +1,4 @@
-# cc-switch-mini
+# cc-switch-web
 
 Headless Web derivative of [cc-switch](https://github.com/farion1231/cc-switch).
 Runs on a server with no GUI and serves the upstream provider-management UI
@@ -11,7 +11,7 @@ rest of the upstream feature set are all reachable from a browser.
 
 ## Highlights
 
-- **Single binary** (`cc-switch-mini`) that serves the Web UI and persists
+- **Single binary** (`cc-switch-web`) that serves the Web UI and persists
   state to a local SQLite database.
 - **Zero changes to upstream** - the fork reuses the original Rust business
   logic (`ProviderService`, `ProxyService`, `ConfigService`, `McpService`,
@@ -24,7 +24,7 @@ rest of the upstream feature set are all reachable from a browser.
   `.ccsm/server/src/commands_extra/*`. See the [Feature Alignment](#feature-alignment-with-upstream)
   section below.
 - **Same source, two binaries**: the upstream Tauri build keeps working
-  on a developer's desktop; `cargo build -p cc-switch-mini-server`
+  on a developer's desktop; `cargo build -p cc-switch-web-server`
   produces the headless server.
 
 ## Install
@@ -32,7 +32,7 @@ rest of the upstream feature set are all reachable from a browser.
 The one-liner (Linux x64 / arm64, macOS):
 
 ```
-curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-mini/main/.ccsm/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-web/main/.ccsm/scripts/install.sh | sh
 ```
 
 After the binary lands in `/usr/local/bin`, start it and tunnel to it from
@@ -54,8 +54,8 @@ The build produces a single release binary:
 ```
 pnpm install
 pnpm run build:renderer    # writes dist/
-cargo build --release -p cc-switch-mini-server
-target/release/cc-switch-mini --help
+cargo build --release -p cc-switch-web-server
+target/release/cc-switch-web --help
 ```
 
 `build:renderer` runs Vite. The output is embedded into the Rust binary
@@ -74,7 +74,7 @@ by `include_dir!`, so the resulting executable is fully self-contained.
 Environment-variable equivalents: `CC_SWITCH_MINI_CONFIG_DIR`,
 `CC_SWITCH_MINI_TOKEN`.
 
-> **Upstream parity** — cc-switch-mini shares the exact same data layout as the upstream Tauri app (`~/.cc-switch/`, `~/.claude/`, `~/.codex/`, etc.), so you can switch back to the desktop app without any data migration.
+> **Upstream parity** — cc-switch-web shares the exact same data layout as the upstream Tauri app (`~/.cc-switch/`, `~/.claude/`, `~/.codex/`, etc.), so you can switch back to the desktop app without any data migration.
 
 ## Feature Alignment with Upstream
 
@@ -117,7 +117,7 @@ covered (the script exits 0). The breakdown by area:
 ### How the "stub" categories work
 
 The cc-switch frontend treats a missing command as a `404` error and
-falls back to a "feature not available" UI state. cc-switch-mini returns
+falls back to a "feature not available" UI state. cc-switch-web returns
 either an empty value (e.g. `[]`, `null`, `false`) or a log message
 depending on the command, so the frontend never crashes; it just
 disables the corresponding button. This matches the project's "no
@@ -136,25 +136,25 @@ surfaces: a small CLI wrapper and the Web UI itself.
 
 ### Service management
 
-A convenience wrapper is installed at `~/.local/bin/cc-switch-mini-ctl`:
+A convenience wrapper is installed at `~/.local/bin/cc-switch-web-ctl`:
 
 | Subcommand | What it does |
 | --- | --- |
-| `cc-switch-mini-ctl start` | enable + start the user-systemd service |
-| `cc-switch-mini-ctl stop` | stop the user-systemd service |
-| `cc-switch-mini-ctl restart` | graceful restart (used after `update`) |
-| `cc-switch-mini-ctl status` | show service state, listener, public endpoint, FRP tunnel |
-| `cc-switch-mini-ctl logs` | `journalctl --user -u cc-switch-mini -f` |
-| `cc-switch-mini-ctl update` | `git pull` + `pnpm install` + `cargo build --release` + reinstall + restart |
+| `cc-switch-web-ctl start` | enable + start the user-systemd service |
+| `cc-switch-web-ctl stop` | stop the user-systemd service |
+| `cc-switch-web-ctl restart` | graceful restart (used after `update`) |
+| `cc-switch-web-ctl status` | show service state, listener, public endpoint, FRP tunnel |
+| `cc-switch-web-ctl logs` | `journalctl --user -u cc-switch-web -f` |
+| `cc-switch-web-ctl update` | `git pull` + `pnpm install` + `cargo build --release` + reinstall + restart |
 
 `status` prints, in one shot:
 
 ```
-=== cc-switch-mini service ===
+=== cc-switch-web service ===
    Active: active (running) since …
 
 === local listener ===
-LISTEN 0  128  127.0.0.1:3000  0.0.0.0:*  users:(("cc-switch-mini",pid=…))
+LISTEN 0  128  127.0.0.1:3000  0.0.0.0:*  users:(("cc-switch-web",pid=…))
 
 === public endpoint ===
 {"status":"ok","version":"3.16.2",…}
@@ -197,7 +197,7 @@ is the recommended access path for a developer machine.
 
 ### Where the data lives
 
-cc-switch-mini reuses the upstream directory layout verbatim. You can
+cc-switch-web reuses the upstream directory layout verbatim. You can
 move between the desktop app and the headless server without
 import/export:
 
@@ -213,7 +213,7 @@ import/export:
 
 ```
 +-------------------+        +-----------------------------+
-| browser           |  HTTP  | cc-switch-mini              |
+| browser           |  HTTP  | cc-switch-web              |
 |                   |  ----> |                             |
 |  - React SPA      |        |  Axum router                |
 |  - bridge/*       |        |    POST /api/invoke/<cmd>   |
@@ -241,12 +241,12 @@ packages (`window`, `app`, `path`, `plugin-dialog`, `plugin-process`,
 
 | Task | Command |
 | --- | --- |
-| Run the dev server (hot reload) | `cargo run -p cc-switch-mini-server` |
-| Run the dev server with custom port | `cargo run -p cc-switch-mini-server -- --port 8080` |
+| Run the dev server (hot reload) | `cargo run -p cc-switch-web-server` |
+| Run the dev server with custom port | `cargo run -p cc-switch-web-server -- --port 8080` |
 | Type-check the frontend | `pnpm run typecheck` |
-| Build a release | `pnpm run build:renderer && cargo build --release -p cc-switch-mini-server` |
+| Build a release | `pnpm run build:renderer && cargo build --release -p cc-switch-web-server` |
 | Verify dispatch coverage | `bash .ccsm/scripts/check-coverage.sh` |
-| Run unit tests | `cargo test -p cc-switch-mini-server` |
+| Run unit tests | `cargo test -p cc-switch-web-server` |
 | Sync upstream (maintainers) | `bash .ccsm/scripts/sync-upstream.sh` |
 
 ## Sync strategy

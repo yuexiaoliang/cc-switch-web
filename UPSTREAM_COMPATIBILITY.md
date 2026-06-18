@@ -2,7 +2,7 @@
 
 ## 修改目标
 
-确保 cc-switch-mini 与上游 Tauri 应用使用完全相同的文件存储位置，这样用户在两者之间切换时不需要任何数据迁移。
+确保 cc-switch-web 与上游 Tauri 应用使用完全相同的文件存储位置，这样用户在两者之间切换时不需要任何数据迁移。
 
 ## 修改内容
 
@@ -29,7 +29,7 @@
 | Codex 配置 | `<data-dir>/.codex/` | `~/.codex/` |
 | Gemini 配置 | `<data-dir>/.gemini/` | `~/.gemini/` |
 
-其中 `<data-dir>` 默认为 `~/.local/share/cc-switch-mini/`
+其中 `<data-dir>` 默认为 `~/.local/share/cc-switch-web/`
 
 ### 3. 保留的功能
 
@@ -49,17 +49,17 @@ ls ~/.claude/                     # ✓ 存在
 
 ## 迁移说明
 
-如果用户之前使用的是旧版本的 cc-switch-mini（数据在 `<data-dir>/` 下），需要手动迁移：
+如果用户之前使用的是旧版本的 cc-switch-web（数据在 `<data-dir>/` 下），需要手动迁移：
 
 ```bash
 # 迁移数据库
-cp ~/.local/share/cc-switch-mini/.cc-switch/cc-switch.db ~/.cc-switch/
+cp ~/.local/share/cc-switch-web/.cc-switch/cc-switch.db ~/.cc-switch/
 
 # 迁移 Hermes 配置
-cp -r ~/.local/share/cc-switch-mini/.hermes/* ~/.hermes/
+cp -r ~/.local/share/cc-switch-web/.hermes/* ~/.hermes/
 
 # 迁移 Claude 配置（如果有）
-cp -r ~/.local/share/cc-switch-mini/.claude/* ~/.claude/
+cp -r ~/.local/share/cc-switch-web/.claude/* ~/.claude/
 
 # 以此类推...
 ```
@@ -68,13 +68,13 @@ cp -r ~/.local/share/cc-switch-mini/.claude/* ~/.claude/
 
 ## 优势
 
-1. **无缝迁移**: 用户可以在 cc-switch-mini 和上游 Tauri 应用之间自由切换
+1. **无缝迁移**: 用户可以在 cc-switch-web 和上游 Tauri 应用之间自由切换
 2. **符合预期**: 配置文件位置与上游文档一致
 3. **易于备份**: 所有配置都在用户主目录下的标准位置
-4. **多版本共存**: 不会因为是 cc-switch-mini 还是上游版本而产生冲突
+4. **多版本共存**: 不会因为是 cc-switch-web 还是上游版本而产生冲突
 
 ## 技术细节
 
-上游代码通过 `CC_SWITCH_TEST_HOME` 环境变量来支持测试场景下的目录重定位。cc-switch-mini 之前滥用了这个机制来实现数据隔离，但这导致了与上游的不兼容。
+上游代码通过 `CC_SWITCH_TEST_HOME` 环境变量来支持测试场景下的目录重定位。cc-switch-web 之前滥用了这个机制来实现数据隔离，但这导致了与上游的不兼容。
 
-现在 cc-switch-mini 直接使用上游的标准路径解析逻辑，确保行为完全一致。
+现在 cc-switch-web 直接使用上游的标准路径解析逻辑，确保行为完全一致。

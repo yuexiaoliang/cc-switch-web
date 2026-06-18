@@ -56,7 +56,7 @@ impl IntoResponse for ApiError {
         // shape for the bridge layer to surface in its `console.error`
         // messages without leaking internal traces.
         let message = self.to_string();
-        log::warn!(target: "cc_switch_mini", "request failed [{code}]: {message}");
+        log::warn!(target: "cc_switch_web", "request failed [{code}]: {message}");
         (
             status,
             Json(json!({

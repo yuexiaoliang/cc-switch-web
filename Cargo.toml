@@ -11,8 +11,8 @@ version = "3.16.3+ccs.2"
 edition = "2021"
 rust-version = "1.85.0"
 license = "MIT"
-authors = ["Jason Young", "cc-switch-mini contributors"]
-repository = "https://github.com/yuexiaoliang/cc-switch-mini"
+authors = ["Jason Young", "cc-switch-web contributors"]
+repository = "https://github.com/yuexiaoliang/cc-switch-web"
 
 # Optimise release binaries; the embedded server is a long-running process so
 # we keep LTO and codegen-units=1 to squeeze startup + memory footprint.

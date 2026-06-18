@@ -97,10 +97,10 @@ jobs:
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --lib -- -D warnings
 
   server:
-    # cc-switch-mini server - the actual deliverable of this fork.
+    # cc-switch-web server - the actual deliverable of this fork.
     # Builds the workspace, exercises our dispatch + bridge glue, and
     # runs the unit tests.
-    name: cc-switch-mini Server
+    name: cc-switch-web Server
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -139,16 +139,16 @@ jobs:
         run: mkdir -p dist
 
       - name: Check formatting
-        run: cargo fmt --check -p cc-switch-mini-server
+        run: cargo fmt --check -p cc-switch-web-server
 
       - name: Clippy
-        run: cargo clippy -p cc-switch-mini-server --lib -- -D warnings
+        run: cargo clippy -p cc-switch-web-server --lib -- -D warnings
 
       - name: Check
-        run: cargo check -p cc-switch-mini-server
+        run: cargo check -p cc-switch-web-server
 
       - name: Run tests
-        run: cargo test -p cc-switch-mini-server
+        run: cargo test -p cc-switch-web-server
 
       - name: Check dispatch coverage
         # Greps `src/lib/api/` for every `invoke("<cmd>")` and compares

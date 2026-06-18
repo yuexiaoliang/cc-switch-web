@@ -9,7 +9,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 #[derive(Parser, Debug, Clone)]
 #[command(
-    name = "cc-switch-mini",
+    name = "cc-switch-web",
     version,
     about = "Headless Web UI for cc-switch - manage AI CLI providers from any browser."
 )]
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn resolves_default_bind_to_loopback_3000() {
-        let cli = Cli::parse_from(["cc-switch-mini"]);
+        let cli = Cli::parse_from(["cc-switch-web"]);
         let resolved = Resolved::resolve(cli).unwrap();
         assert_eq!(resolved.bind_addr.port(), 3000);
         assert!(resolved.spa_fallback);
@@ -94,7 +94,7 @@ mod tests {
     fn warns_on_public_bind_without_token() {
         // We do not assert on the log output, only that resolve succeeds and
         // the loopback guard runs without panicking.
-        let cli = Cli::parse_from(["cc-switch-mini", "--host", "0.0.0.0"]);
+        let cli = Cli::parse_from(["cc-switch-web", "--host", "0.0.0.0"]);
         let resolved = Resolved::resolve(cli).unwrap();
         assert!(resolved.token.is_none());
     }

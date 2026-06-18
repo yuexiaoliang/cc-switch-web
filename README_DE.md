@@ -4,8 +4,8 @@
 
 ### Server-seitiger Abkömmling von [cc-switch](https://github.com/farion1231/cc-switch) · ohne GUI · Verwaltung im Browser
 
-[![Version](https://img.shields.io/github/v/release/yuexiaoliang/cc-switch-mini?color=blue&label=version)](https://github.com/yuexiaoliang/cc-switch-mini/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/yuexiaoliang/cc-switch-mini/releases)
+[![Version](https://img.shields.io/github/v/release/yuexiaoliang/cc-switch-web?color=blue&label=version)](https://github.com/yuexiaoliang/cc-switch-web/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/yuexiaoliang/cc-switch-web/releases)
 [![Built with Axum](https://img.shields.io/badge/built%20with-Axum%200.7-orange.svg)](https://github.com/tokio-rs/axum)
 [![Upstream](https://img.shields.io/badge/upstream-cc--switch-blue)](https://github.com/farion1231/cc-switch)
 
@@ -20,18 +20,18 @@
 
 ## Highlights
 
-- **Einzelnes Binärpaket** (`cc-switch-mini`), das Web-UI und lokale SQLite-Datenbank bündelt.
+- **Einzelnes Binärpaket** (`cc-switch-web`), das Web-UI und lokale SQLite-Datenbank bündelt.
 - **Null Änderungen am Upstream-Code**: vorhandene Rust-Geschäftslogik (`ProviderService` / `ProxyService` / `ConfigService` / `McpService` / `Database` ...) und React-Frontend werden unverändert wiederverwendet.
 - **Tauri IPC wird ersetzt**: ein schlanker HTTP/SSE-Bridge in `.ccsm/bridge/` ersetzt Tauri-IPC. pnpm `overrides` leiten `@tauri-apps/*`-Importe auf das lokale Bridge-Paket um, das Frontend kompiliert ohne Änderungen.
 - **Vollständige Feature-Parität**: Jeder `invoke` aus dem Frontend wird in `.ccsm/server/src/commands_extra/*` beantwortet. Siehe den Abschnitt [Feature-Parität mit Upstream](#feature-parität-mit-upstream).
-- **Gleicher Quellcode, zwei Binaries**: Der Tauri-Desktop-Build funktioniert weiterhin; `cargo build -p cc-switch-mini-server` erzeugt den Headless-Server.
+- **Gleicher Quellcode, zwei Binaries**: Der Tauri-Desktop-Build funktioniert weiterhin; `cargo build -p cc-switch-web-server` erzeugt den Headless-Server.
 
 ## Installation
 
 Einzeiler (Linux x64 / arm64, macOS):
 
 ```
-curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-mini/main/.ccsm/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-web/main/.ccsm/scripts/install.sh | sh
 ```
 
 Nach der Installation in `/usr/local/bin` starten und per SSH-Tunnel darauf zugreifen:
@@ -48,8 +48,8 @@ Standardmäßig bindet der Server nur an `127.0.0.1:3000` (sicherer Standard). `
 ```
 pnpm install
 pnpm run build:renderer    # schreibt nach dist/
-cargo build --release -p cc-switch-mini-server
-target/release/cc-switch-mini --help
+cargo build --release -p cc-switch-web-server
+target/release/cc-switch-web --help
 ```
 
 `build:renderer` führt Vite aus. Das Ergebnis wird via `include_dir!` in das Rust-Binary eingebettet, sodass eine komplett eigenständige Binärdatei entsteht.
@@ -60,14 +60,14 @@ target/release/cc-switch-mini --help
 | --- | --- | --- |
 | `--host` | `127.0.0.1` | Bind-Adresse. `0.0.0.0` legt das UI offen (`--token` mitgeben) |
 | `--port` | `3000` | Listen-Port |
-| `--data-dir` | `~/.local/share/cc-switch-mini` | Logs & temporäre Dateien (DB lebt unter dem Upstream-Pfad `~/.cc-switch/`) |
+| `--data-dir` | `~/.local/share/cc-switch-web` | Logs & temporäre Dateien (DB lebt unter dem Upstream-Pfad `~/.cc-switch/`) |
 | `--config-dir` | Benutzer-Home | Überschreibt die Konfig-Verzeichnisse von Claude / Codex / Gemini |
 | `--token` | _(keines)_ | Optionaler Bearer-Token; jede `/api/*`-Anfrage muss ihn mitsenden |
 | `--no-spa-fallback` | aus | Unbekannte Pfade direkt 404 (zum Debuggen des Bridges) |
 
 Entsprechende Umgebungsvariablen: `CC_SWITCH_MINI_DATA_DIR`, `CC_SWITCH_MINI_CONFIG_DIR`, `CC_SWITCH_MINI_TOKEN`.
 
-> **Upstream-Kompatibilität** — `--data-dir` ist cc-switch-mini-spezifisch. Die SQLite-Datenbank und die Provider-Konfigurationen (`~/.hermes/`, `~/.claude/`, `~/.codex/`, `~/.gemini/`) liegen immer an den Upstream-Pfaden, sodass ein Wechsel zur Desktop-App ohne Datenmigration möglich ist.
+> **Upstream-Kompatibilität** — `--data-dir` ist cc-switch-web-spezifisch. Die SQLite-Datenbank und die Provider-Konfigurationen (`~/.hermes/`, `~/.claude/`, `~/.codex/`, `~/.gemini/`) liegen immer an den Upstream-Pfaden, sodass ein Wechsel zur Desktop-App ohne Datenmigration möglich ist.
 
 ## Feature-Parität mit Upstream
 
@@ -103,7 +103,7 @@ Entsprechende Umgebungsvariablen: `CC_SWITCH_MINI_DATA_DIR`, `CC_SWITCH_MINI_CON
 
 ### Wie funktionieren die Stubs?
 
-Das cc-switch-Frontend behandelt nicht implementierte Befehle als 404 und fällt auf eine "Funktion nicht verfügbar"-Anzeige zurück. cc-switch-mini gibt leere Werte (`[]`, `null`, `false`) oder Logmeldungen zurück, sodass das Frontend nicht abstürzt, sondern die entsprechende Schaltfläche deaktiviert. Dies entspricht dem "Keine Geschäftslogik"-Vertrag: Die Dispatch-Schicht ist ein dünner Durchreicher.
+Das cc-switch-Frontend behandelt nicht implementierte Befehle als 404 und fällt auf eine "Funktion nicht verfügbar"-Anzeige zurück. cc-switch-web gibt leere Werte (`[]`, `null`, `false`) oder Logmeldungen zurück, sodass das Frontend nicht abstürzt, sondern die entsprechende Schaltfläche deaktiviert. Dies entspricht dem "Keine Geschäftslogik"-Vertrag: Die Dispatch-Schicht ist ein dünner Durchreicher.
 
 Wenn der Upstream-Typ in einem `pub mod` liegt, binden wir ihn direkt ein; ist er privat, arbeiten wir direkt auf der Datenbank / Datei. Siehe Datei-Kopfkommentare in `.ccsm/server/src/commands_extra/*.rs` für die Begründung pro Befehl.
 
@@ -113,25 +113,25 @@ Sobald der Server läuft, ist die Web-UI unter der bei der Installation gewählt
 
 ### Service-Verwaltung
 
-Der Helfer liegt unter `~/.local/bin/cc-switch-mini-ctl`:
+Der Helfer liegt unter `~/.local/bin/cc-switch-web-ctl`:
 
 | Unterbefehl | Wirkung |
 | --- | --- |
-| `cc-switch-mini-ctl start` | user-systemd-Dienst aktivieren + starten |
-| `cc-switch-mini-ctl stop` | Dienst stoppen |
-| `cc-switch-mini-ctl restart` | Sauberer Neustart (wird nach `update` automatisch aufgerufen) |
-| `cc-switch-mini-ctl status` | Dienstzustand, Listener, öffentlicher Endpunkt und FRP-Tunnel auf einen Blick |
-| `cc-switch-mini-ctl logs` | `journalctl --user -u cc-switch-mini -f` |
-| `cc-switch-mini-ctl update` | `git pull` + `pnpm install` + `cargo build --release` + Reinstall + Neustart |
+| `cc-switch-web-ctl start` | user-systemd-Dienst aktivieren + starten |
+| `cc-switch-web-ctl stop` | Dienst stoppen |
+| `cc-switch-web-ctl restart` | Sauberer Neustart (wird nach `update` automatisch aufgerufen) |
+| `cc-switch-web-ctl status` | Dienstzustand, Listener, öffentlicher Endpunkt und FRP-Tunnel auf einen Blick |
+| `cc-switch-web-ctl logs` | `journalctl --user -u cc-switch-web -f` |
+| `cc-switch-web-ctl update` | `git pull` + `pnpm install` + `cargo build --release` + Reinstall + Neustart |
 
 `status` zeigt in einem Schritt:
 
 ```
-=== cc-switch-mini service ===
+=== cc-switch-web service ===
    Active: active (running) since …
 
 === local listener ===
-LISTEN 0  128  127.0.0.1:3000  0.0.0.0:*  users:(("cc-switch-mini",pid=…))
+LISTEN 0  128  127.0.0.1:3000  0.0.0.0:*  users:(("cc-switch-web",pid=…))
 
 === public endpoint ===
 {"status":"ok","version":"3.16.2",…}
@@ -175,7 +175,7 @@ zur empfohlenen Zugriffsart für eine Entwickler-Maschine macht.
 
 ### Wo die Daten liegen
 
-cc-switch-mini übernimmt das Upstream-Layout 1:1. Du kannst zwischen
+cc-switch-web übernimmt das Upstream-Layout 1:1. Du kannst zwischen
 Desktop-App und Headless-Server wechseln, ohne Daten zu
 importieren/exportieren:
 
@@ -186,13 +186,13 @@ importieren/exportieren:
 | Claude-Konfiguration | `~/.claude/settings.json` | beide |
 | Codex-Konfiguration | `~/.codex/config.toml` | beide |
 | Gemini-Konfiguration | `~/.gemini/config.json` | beide |
-| Logs / Temp-Dateien | `~/.local/share/cc-switch-mini/` | nur cc-switch-mini |
+| Logs / Temp-Dateien | `~/.local/share/cc-switch-web/` | nur cc-switch-web |
 
 ## Architektur
 
 ```
 +-------------------+        +-----------------------------+
-| Browser           |  HTTP  | cc-switch-mini              |
+| Browser           |  HTTP  | cc-switch-web              |
 |                   |  ----> |                             |
 |  - React SPA      |        |  Axum-Router                |
 |  - bridge/*       |        |    POST /api/invoke/<cmd>   |
@@ -216,12 +216,12 @@ Die Bridge ist eine winzige TypeScript-Schicht: `@tauri-apps/api/core` `invoke` 
 
 | Aufgabe | Befehl |
 | --- | --- |
-| Dev-Server starten | `cargo run -p cc-switch-mini-server` |
-| Dev-Server mit Port | `cargo run -p cc-switch-mini-server -- --port 8080` |
+| Dev-Server starten | `cargo run -p cc-switch-web-server` |
+| Dev-Server mit Port | `cargo run -p cc-switch-web-server -- --port 8080` |
 | Frontend Typ-Check | `pnpm run typecheck` |
-| Release bauen | `pnpm run build:renderer && cargo build --release -p cc-switch-mini-server` |
+| Release bauen | `pnpm run build:renderer && cargo build --release -p cc-switch-web-server` |
 | Dispatch-Abdeckung prüfen | `bash .ccsm/scripts/check-coverage.sh` |
-| Unit-Tests ausführen | `cargo test -p cc-switch-mini-server` |
+| Unit-Tests ausführen | `cargo test -p cc-switch-web-server` |
 | Upstream synchronisieren (Maintainer) | `bash .ccsm/scripts/sync-upstream.sh` |
 
 ## Sync-Strategie

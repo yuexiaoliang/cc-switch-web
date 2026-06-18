@@ -1,4 +1,4 @@
-//! cc-switch-mini headless server.
+//! cc-switch-web headless server.
 //!
 //! This crate is a thin Axum-based HTTP adapter that exposes the upstream
 //! `cc_switch_lib` business logic to a browser. It does not own any of the
@@ -6,7 +6,7 @@
 //! requests (`POST /api/invoke/<cmd>`) to the upstream services and streams
 //! the resulting Tauri-style events back via SSE (`GET /api/events`).
 //!
-//! Architecture (mirrors section 5 of `cc-switch-mini.md`):
+//! Architecture (mirrors section 5 of `cc-switch-web.md`):
 //!
 //! ```text
 //! browser  --HTTP-->  Axum router
@@ -144,7 +144,7 @@ impl AppContext {
     pub fn placeholder() -> Self {
         use crate::events::EventBus;
         let temp_home =
-            std::env::temp_dir().join(format!("cc-switch-mini-test-{}", std::process::id()));
+            std::env::temp_dir().join(format!("cc-switch-web-test-{}", std::process::id()));
         std::fs::create_dir_all(&temp_home).expect("create temp test home");
         std::env::set_var("CC_SWITCH_TEST_HOME", &temp_home);
         let db = cc_switch_lib::Database::memory().expect("test memory database init");

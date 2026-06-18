@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# cc-switch-mini one-line installer.
+# cc-switch-web one-line installer.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-mini/main/.ccsm/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-web/main/.ccsm/scripts/install.sh | sh
 #
 # Environment variables (all optional):
 #   CCSM_VERSION         - release tag to install (default: latest)
 #   CCSM_INSTALL_DIR     - target binary directory (default: /usr/local/bin)
-#   CCSM_GITHUB_REPO     - override the source repository (default: yuexiaoliang/cc-switch-mini)
+#   CCSM_GITHUB_REPO     - override the source repository (default: yuexiaoliang/cc-switch-web)
 #   CCSM_NO_SERVICE      - set to 1 to skip the systemd unit / launchd plist registration
 #
 # The script:
@@ -29,9 +29,9 @@
 # users hit when running `curl ... | sh` on a fresh Ubuntu box.
 set -eu
 
-GITHUB_REPO="${CCSM_GITHUB_REPO:-yuexiaoliang/cc-switch-mini}"
+GITHUB_REPO="${CCSM_GITHUB_REPO:-yuexiaoliang/cc-switch-web}"
 INSTALL_DIR="${CCSM_INSTALL_DIR:-/usr/local/bin}"
-BIN_NAME="cc-switch-mini"
+BIN_NAME="cc-switch-web"
 SKIP_SERVICE="${CCSM_NO_SERVICE:-0}"
 
 say() { printf '\033[1;34m[ccsm]\033[0m %s\n' "$*"; }
@@ -46,7 +46,7 @@ detect_target() {
   case "$os" in
     linux)  TARGET_OS="linux" ;;
     darwin) TARGET_OS="macos" ;;
-    *) die "unsupported OS: $os (cc-switch-mini targets Linux servers; macOS works but is unofficial)" ;;
+    *) die "unsupported OS: $os (cc-switch-web targets Linux servers; macOS works but is unofficial)" ;;
   esac
   case "$arch" in
     x86_64|amd64) TARGET_ARCH="x86_64" ;;
@@ -55,7 +55,7 @@ detect_target() {
   esac
   TARGET="${TARGET_OS}-${TARGET_ARCH}"
   # No `-apple` suffix here on purpose: the release workflow publishes assets
-  # named `cc-switch-mini-{linux,macos}-{x86_64,aarch64}.tar.xz` (no `-apple`).
+  # named `cc-switch-web-{linux,macos}-{x86_64,aarch64}.tar.xz` (no `-apple`).
   # Earlier versions of this script appended `-apple` (a Rust target-triple
   # convention) which then 404'd against the actual release artifacts.
 }
@@ -76,7 +76,7 @@ resolve_version() {
 
 # --- 3. Download + verify -----------------------------------------------------
 download_and_verify() {
-  local archive="cc-switch-mini-${TARGET}.tar.xz"
+  local archive="cc-switch-web-${TARGET}.tar.xz"
   local url="https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/${archive}"
   local sums_url="https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/SHA256SUMS"
   # NB: `workdir` is intentionally *not* `local`. The EXIT trap we install
@@ -100,9 +100,9 @@ download_and_verify() {
   say "extracting"
   tar -xJf "$workdir/$archive" -C "$workdir"
   # The release workflow stages the tarball with a top-level
-  # `cc-switch-mini/` directory holding the binary (plus README/LICENSE/
+  # `cc-switch-web/` directory holding the binary (plus README/LICENSE/
   # CHANGELOG). After extraction the binary lives at
-  # `$workdir/cc-switch-mini/cc-switch-mini`. Accept the legacy flat layout
+  # `$workdir/cc-switch-web/cc-switch-web`. Accept the legacy flat layout
   # too in case a future workflow flattens it.
   if   [ -f "$workdir/$BIN_NAME/$BIN_NAME" ]; then BIN_PATH="$workdir/$BIN_NAME/$BIN_NAME"
   elif [ -f "$workdir/$BIN_NAME" ];           then BIN_PATH="$workdir/$BIN_NAME"
@@ -150,11 +150,11 @@ register_service() {
     return
   fi
 
-  local unit=/etc/systemd/system/cc-switch-mini.service
+  local unit=/etc/systemd/system/cc-switch-web.service
   say "writing systemd unit at $unit"
   sudo tee "$unit" >/dev/null <<EOF
 [Unit]
-Description=cc-switch-mini headless server
+Description=cc-switch-web headless server
 After=network-online.target
 Wants=network-online.target
 
@@ -176,8 +176,8 @@ WantedBy=multi-user.target
 EOF
 
   sudo systemctl daemon-reload
-  sudo systemctl enable --now cc-switch-mini.service
-  say "service started; check with: systemctl status cc-switch-mini"
+  sudo systemctl enable --now cc-switch-web.service
+  say "service started; check with: systemctl status cc-switch-web"
 }
 
 # --- main ---------------------------------------------------------------------
@@ -189,16 +189,16 @@ register_service
 
 cat <<EOF
 
-cc-switch-mini $VERSION installed.
+cc-switch-web $VERSION installed.
 
 Quick start:
-  cc-switch-mini                    # serves on http://127.0.0.1:3000
+  cc-switch-web                    # serves on http://127.0.0.1:3000
   ssh -L 3000:localhost:3000 user@host  # tunnel from your laptop
   open http://localhost:3000
 
 Service (systemd):
-  systemctl status cc-switch-mini
-  journalctl -u cc-switch-mini -f
+  systemctl status cc-switch-web
+  journalctl -u cc-switch-web -f
 
-Customise the data directory or port via CLI flags - run \`cc-switch-mini --help\`.
+Customise the data directory or port via CLI flags - run \`cc-switch-web --help\`.
 EOF

@@ -2,7 +2,7 @@
   "name": "@tauri-apps/plugin-process",
   "version": "0.0.0-ccsm",
   "private": true,
-  "description": "cc-switch-mini bridge for @tauri-apps/plugin-process - exit() closes the tab.",
+  "description": "cc-switch-web bridge for @tauri-apps/plugin-process - exit() closes the tab.",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",

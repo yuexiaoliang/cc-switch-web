@@ -32,7 +32,7 @@ pub async fn import_from_deeplink_unified(ctx: &Arc<AppContext>, args: Value) ->
             Ok(serde_json::json!({ "type": "provider", "id": id }))
         }
         "prompt" | "mcp" | "skill" => Err(ApiError::Internal(format!(
-            "{} imports are not yet wired into cc-switch-mini",
+            "{} imports are not yet wired into cc-switch-web",
             request.resource
         ))),
         other => Err(ApiError::BadArgument {

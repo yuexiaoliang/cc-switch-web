@@ -20,10 +20,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-22.04,      target: linux-x86_64,    artifact: cc-switch-mini-linux-x86_64.tar.xz,    label: Linux x86_64 }
-          - { os: ubuntu-22.04-arm, target: linux-aarch64,   artifact: cc-switch-mini-linux-aarch64.tar.xz,   label: Linux ARM64 }
-          - { os: macos-14,         target: macos-x86_64,    artifact: cc-switch-mini-macos-x86_64.tar.xz,    label: macOS x86_64 }
-          - { os: macos-14,         target: macos-aarch64,   artifact: cc-switch-mini-macos-aarch64.tar.xz,   label: macOS ARM64 }
+          - { os: ubuntu-22.04,      target: linux-x86_64,    artifact: cc-switch-web-linux-x86_64.tar.xz,    label: Linux x86_64 }
+          - { os: ubuntu-22.04-arm, target: linux-aarch64,   artifact: cc-switch-web-linux-aarch64.tar.xz,   label: Linux ARM64 }
+          - { os: macos-14,         target: macos-x86_64,    artifact: cc-switch-web-macos-x86_64.tar.xz,    label: macOS x86_64 }
+          - { os: macos-14,         target: macos-aarch64,   artifact: cc-switch-web-macos-aarch64.tar.xz,   label: macOS ARM64 }
 
     steps:
       - name: Checkout
@@ -78,23 +78,23 @@ jobs:
           restore-keys: ${{ runner.os }}-ccsm-${{ matrix.target }}-
 
       - name: Build release binary
-        run: cargo build --release -p cc-switch-mini-server --bin cc-switch-mini
+        run: cargo build --release -p cc-switch-web-server --bin cc-switch-web
 
       - name: Stage artifact directory
         run: |
-          mkdir -p release-stage/cc-switch-mini
-          cp target/release/cc-switch-mini release-stage/cc-switch-mini/
+          mkdir -p release-stage/cc-switch-web
+          cp target/release/cc-switch-web release-stage/cc-switch-web/
           # README + LICENSE so the install layout is self-documenting.
-          cp README.md release-stage/cc-switch-mini/
-          cp LICENSE  release-stage/cc-switch-mini/ 2>/dev/null || true
+          cp README.md release-stage/cc-switch-web/
+          cp LICENSE  release-stage/cc-switch-web/ 2>/dev/null || true
           # CHANGELOG excerpt is best-effort.
-          cp CHANGELOG.md release-stage/cc-switch-mini/ 2>/dev/null || true
-          ls -la release-stage/cc-switch-mini
+          cp CHANGELOG.md release-stage/cc-switch-web/ 2>/dev/null || true
+          ls -la release-stage/cc-switch-web
 
       - name: Compress tarball
         run: |
           mkdir -p release-assets
-          tar -C release-stage -cJf "release-assets/${{ matrix.artifact }}" cc-switch-mini
+          tar -C release-stage -cJf "release-assets/${{ matrix.artifact }}" cc-switch-web
           ls -la release-assets
 
       - name: Upload artifact
@@ -139,10 +139,10 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
-          name: cc-switch-mini ${{ github.ref_name }}
+          name: cc-switch-web ${{ github.ref_name }}
           prerelease: true
           body: |
-            ## cc-switch-mini ${{ github.ref_name }}
+            ## cc-switch-web ${{ github.ref_name }}
 
             Headless Web derivative of [cc-switch](https://github.com/farion1231/cc-switch).
             Run on a server with no GUI and open the Web UI in any modern browser.
@@ -150,26 +150,26 @@ jobs:
             ### Install
 
             ```sh
-            curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-mini/main/.ccsm/scripts/install.sh | sh
+            curl -fsSL https://raw.githubusercontent.com/yuexiaoliang/cc-switch-web/main/.ccsm/scripts/install.sh | sh
             ```
 
             The one-liner downloads the matching tarball, verifies the SHA-256
-            against `SHA256SUMS`, and drops `cc-switch-mini` into `/usr/local/bin`.
+            against `SHA256SUMS`, and drops `cc-switch-web` into `/usr/local/bin`.
 
             ### Quick start
 
             ```sh
-            cc-switch-mini                                  # serves on 127.0.0.1:3000
+            cc-switch-web                                  # serves on 127.0.0.1:3000
             ssh -L 3000:localhost:3000 user@host             # tunnel from your laptop
             open http://localhost:3000                        # open in any browser
             ```
 
             ### Files
 
-            - `cc-switch-mini-linux-x86_64.tar.xz` ！ Linux x86_64
-            - `cc-switch-mini-linux-aarch64.tar.xz` ！ Linux ARM64
-            - `cc-switch-mini-macos-x86_64.tar.xz` ！ macOS Intel
-            - `cc-switch-mini-macos-aarch64.tar.xz` ！ macOS Apple Silicon
+            - `cc-switch-web-linux-x86_64.tar.xz` ！ Linux x86_64
+            - `cc-switch-web-linux-aarch64.tar.xz` ！ Linux ARM64
+            - `cc-switch-web-macos-x86_64.tar.xz` ！ macOS Intel
+            - `cc-switch-web-macos-aarch64.tar.xz` ！ macOS Apple Silicon
             - `SHA256SUMS` ！ checksums for every tarball above
 
             See `.ccsm/DEVELOPMENT.md` in the repo for the full

@@ -1,12 +1,12 @@
-﻿# cc-switch-mini — development notes
+﻿# cc-switch-web — development notes
 
 This document captures the non-obvious decisions made while implementing
-the cc-switch-mini overlay. It complements the user-facing `README.md`.
+the cc-switch-web overlay. It complements the user-facing `README.md`.
 
 ## Workspace layout
 
 ```
-cc-switch-mini/
+cc-switch-web/
   Cargo.toml                 # workspace root: members = [src-tauri, .ccsm/server]
   src/                       # upstream frontend, untouched
   src-tauri/                 # upstream Rust library, untouched
@@ -49,8 +49,8 @@ the original name and a `exports` field mapping each subpath to a
 
 ## Server build
 
-The single binary `cc-switch-mini` is produced by
-`cargo build --release -p cc-switch-mini-server`. It depends on the
+The single binary `cc-switch-web` is produced by
+`cargo build --release -p cc-switch-web-server`. It depends on the
 upstream `cc-switch` lib and embeds the Vite output via
 `include_dir!("../../dist")`.
 
@@ -58,8 +58,8 @@ To produce a release artifact:
 
 1. `pnpm install`
 2. `pnpm run build:renderer`   # writes dist/
-3. `cargo build --release -p cc-switch-mini-server`
-4. `target/release/cc-switch-mini` is the deliverable.
+3. `cargo build --release -p cc-switch-web-server`
+4. `target/release/cc-switch-web` is the deliverable.
 
 ## Dispatch table
 
@@ -97,7 +97,7 @@ even via the `pub use commands::*;` re-export:
   upstream retry / Copilot-auth / proxy-only-filtering logic is
   not replicated.
 - The `Database` DAO methods (e.g. `get_stream_check_config`) are
-  declared in `pub(crate) mod dao`. The cc-switch-mini server opens
+  declared in `pub(crate) mod dao`. The cc-switch-web server opens
   its own `rusqlite::Connection` to the same file and queries the
   `settings` table directly. This works because the
   `Database::init()` call at startup already created the schema.
@@ -125,7 +125,7 @@ prominent example — see their implementation for the pattern.
 | `--token` | `CC_SWITCH_MINI_TOKEN` | – | bearer token; every `/api/*` request must carry `Authorization: Bearer <token>` |
 | `--no-spa-fallback` | – | off | disable `index.html` fallback for unknown paths |
 
-cc-switch-mini uses the upstream Tauri app directory layout verbatim. The upstream re-exports only a few `config` helpers, so the cc-switch-mini path computations are duplicated for the apps where the helper is unreachable (e.g. `get_claude_config_dir`). Tests can relocate the home directory via the `CC_SWITCH_TEST_HOME` env var.
+cc-switch-web uses the upstream Tauri app directory layout verbatim. The upstream re-exports only a few `config` helpers, so the cc-switch-web path computations are duplicated for the apps where the helper is unreachable (e.g. `get_claude_config_dir`). Tests can relocate the home directory via the `CC_SWITCH_TEST_HOME` env var.
 
 ## Auth model
 
@@ -141,12 +141,12 @@ middleware is a no-op.
 
 The workspace version (root `Cargo.toml` `workspace.package.version`,
 plus `package.json` `version`) mirrors the upstream tag. When a
-cc-switch-mini-only change ships between upstream tags, we use
+cc-switch-web-only change ships between upstream tags, we use
 build-metadata in the SemVer (e.g. `3.16.2+ccs.1`).
 
 ## Tests
 
-- `cargo test -p cc-switch-mini-server` exercises the auth helper,
+- `cargo test -p cc-switch-web-server` exercises the auth helper,
   CLI parser, and a couple of small unit checks in `dispatch.rs`.
 - The full integration suite (the upstream `src-tauri/tests/`) is
   untouched and remains the source of truth for the business

@@ -1,6 +1,6 @@
 # Deployment files for cc-switch.yue.center
 
-This directory contains the three files that wire cc-switch-mini into
+This directory contains the three files that wire cc-switch-web into
 the existing infrastructure on this machine. They are **not** part of
 the source build — they are deployment-time templates.
 
@@ -8,7 +8,7 @@ the source build — they are deployment-time templates.
 
 | File | Where it goes | Purpose |
 | --- | --- | --- |
-| `cc-switch-mini.service` | `~/.config/systemd/user/cc-switch-mini.service` | User-systemd unit that keeps the binary alive |
+| `cc-switch-web.service` | `~/.config/systemd/user/cc-switch-web.service` | User-systemd unit that keeps the binary alive |
 | `nginx.conf.snippet` | `~/nginx-config/conf.d/cc-switch.conf` | nginx vhost (HTTP→HTTPS, SSE + asset caching) |
 | `frpc.snippet.toml` | append to `~/frpc.toml` | FRP proxies that publish the domain on the public edge |
 
@@ -16,16 +16,16 @@ the source build — they are deployment-time templates.
 
 1. **Build + install the binary**
    ```bash
-   cd /home/yuexiaoliang/projects/cc-switch-mini
-   cargo build --release -p cc-switch-mini-server
-   sudo install -m 0755 target/release/cc-switch-mini /usr/local/bin/cc-switch-mini
+   cd /home/yuexiaoliang/projects/cc-switch-web
+   cargo build --release -p cc-switch-web-server
+   sudo install -m 0755 target/release/cc-switch-web /usr/local/bin/cc-switch-web
    ```
 
 2. **Install the systemd service**
    ```bash
-   cp .ccsm/deploy/cc-switch-mini.service ~/.config/systemd/user/
+   cp .ccsm/deploy/cc-switch-web.service ~/.config/systemd/user/
    systemctl --user daemon-reload
-   systemctl --user enable --now cc-switch-mini.service
+   systemctl --user enable --now cc-switch-web.service
    ```
    (If this is the first user service, run `loginctl enable-linger <user>`
    from a privileged shell so it survives logout.)
@@ -51,18 +51,18 @@ the source build — they are deployment-time templates.
 
 ## Day-to-day management
 
-A convenience wrapper is installed at `~/.local/bin/cc-switch-mini-ctl`:
+A convenience wrapper is installed at `~/.local/bin/cc-switch-web-ctl`:
 
 ```bash
-cc-switch-mini-ctl status    # service + listener + public endpoint
-cc-switch-mini-ctl logs      # journalctl -f for the service
-cc-switch-mini-ctl restart   # graceful restart
-cc-switch-mini-ctl update    # pull + rebuild + reinstall + restart
+cc-switch-web-ctl status    # service + listener + public endpoint
+cc-switch-web-ctl logs      # journalctl -f for the service
+cc-switch-web-ctl restart   # graceful restart
+cc-switch-web-ctl update    # pull + rebuild + reinstall + restart
 ```
 
 ## Why these specific paths
 
-- `CC_SWITCH_MINI_DATA_DIR` is set to `~/.local/share/cc-switch-mini/`
+- `CC_SWITCH_MINI_DATA_DIR` is set to `~/.local/share/cc-switch-web/`
   (only used for logs and temp files; the real DB lives at
   `~/.cc-switch/cc-switch.db` so it stays interchangeable with the
   upstream Tauri app).

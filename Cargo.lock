@@ -877,8 +877,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "cc-switch-mini-server"
-version = "3.16.3+ccs.1"
+name = "cc-switch-web-server"
+version = "3.16.3+ccs.2"
 dependencies = [
  "anyhow",
  "async-stream",

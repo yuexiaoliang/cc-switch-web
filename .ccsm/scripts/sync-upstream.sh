@@ -20,7 +20,7 @@ die()  { printf '\033[1;31m[ccsm-sync]\033[0m %s\n' "$*" >&2; exit 1; }
 
 # --- 1. Sanity checks ---------------------------------------------------------
 [ -d "$WORKTREE/.git" ] || die "not a git repository: $WORKTREE"
-[ -d "$WORKTREE/.ccsm" ] || die ".ccsm/ not found - this script is for the cc-switch-mini fork"
+[ -d "$WORKTREE/.ccsm" ] || die ".ccsm/ not found - this script is for the cc-switch-web fork"
 
 if ! git remote get-url "$UPSTREAM_REMOTE" >/dev/null 2>&1; then
   say "adding $UPSTREAM_REMOTE remote (https://github.com/farion1231/cc-switch.git)"
@@ -45,7 +45,7 @@ if git merge --no-edit "$REMOTE"; then
 fi
 
 # --- 3. Resolve conflicts using section 7.2 -----------------------------------
-say "merge produced conflicts; applying cc-switch-mini resolution policy"
+say "merge produced conflicts; applying cc-switch-web resolution policy"
 
 # These are upstream-owned and we want the latest version verbatim.
 for path in src src-tauri; do
@@ -79,7 +79,7 @@ if git diff --name-only --diff-filter=U | grep -q "^package.json$"; then
       | .dependencies["@tauri-apps/plugin-process"]     = "file:./.ccsm/bridge/plugin-process"
       | .dependencies["@tauri-apps/plugin-store"]       = "file:./.ccsm/bridge/plugin-store"
       | .dependencies["@tauri-apps/plugin-updater"]     = "file:./.ccsm/bridge/plugin-updater"
-      | .scripts["build:server"]        = "cargo build --release -p cc-switch-mini-server"
+      | .scripts["build:server"]        = "cargo build --release -p cc-switch-web-server"
       | .scripts["ccsm:check-coverage"] = "bash .ccsm/scripts/check-coverage.sh"
       | .scripts["ccsm:sync-upstream"]   = "bash .ccsm/scripts/sync-upstream.sh"
     ' package.json > package.json.new && mv package.json.new package.json
@@ -101,7 +101,7 @@ overrides = {
 pkg.setdefault("pnpm", {})["overrides"] = overrides
 for k in list(overrides):
     pkg["dependencies"][k] = overrides[k]
-pkg["scripts"].setdefault("build:server", "cargo build --release -p cc-switch-mini-server")
+pkg["scripts"].setdefault("build:server", "cargo build --release -p cc-switch-web-server")
 pkg["scripts"].setdefault("ccsm:check-coverage", "bash .ccsm/scripts/check-coverage.sh")
 pkg["scripts"].setdefault("ccsm:sync-upstream", "bash .ccsm/scripts/sync-upstream.sh")
 p.write_text(json.dumps(pkg, indent=2) + "\n")
@@ -119,7 +119,7 @@ fi
 
 # Cargo.toml at the root was added by us; if upstream added one, prefer ours.
 if git diff --name-only --diff-filter=U | grep -q "^Cargo.toml$"; then
-  if grep -q "cc-switch-mini-server" Cargo.toml 2>/dev/null; then
+  if grep -q "cc-switch-web-server" Cargo.toml 2>/dev/null; then
     say "  keeping our root Cargo.toml (workspace member)"
     git checkout --ours -- Cargo.toml
     git add Cargo.toml
@@ -148,7 +148,7 @@ if git diff --name-only --diff-filter=U | grep -q "^.gitignore$"; then
     {
       printf '%s
 ' "$upstream_gitignore"
-      printf '\n# === cc-switch-mini additions ===\n'
+      printf '\n# === cc-switch-web additions ===\n'
       comm -23 <(printf '%s\n' "$our_gitignore" | sort -u) \
                <(printf '%s\n' "$upstream_gitignore" | sort -u)
     } > .gitignore.new
@@ -167,7 +167,7 @@ if [ -n "$remaining" ]; then
   die "please resolve manually and run \`git commit\` to finish the merge"
 fi
 
-git -c user.name="cc-switch-mini sync" \
-    -c user.email="cc-switch-mini@users.noreply.github.com" \
+git -c user.name="cc-switch-web sync" \
+    -c user.email="cc-switch-web@users.noreply.github.com" \
     commit --no-edit
 say "merge complete - run \`git push\` to publish"

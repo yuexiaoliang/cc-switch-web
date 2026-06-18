@@ -76,7 +76,7 @@ fn placeholder_response() -> Response {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>cc-switch-mini</title>
+    <title>cc-switch-web</title>
     <style>
       body { font-family: -apple-system, system-ui, sans-serif; max-width: 720px; margin: 4rem auto; padding: 0 1.5rem; line-height: 1.5; color: #1f2937; }
       code { background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; }
@@ -85,12 +85,12 @@ fn placeholder_response() -> Response {
     </style>
   </head>
   <body>
-    <h1>cc-switch-mini is running</h1>
+    <h1>cc-switch-web is running</h1>
     <p class="muted">The static frontend bundle has not been built yet.</p>
     <p>From the repository root run:</p>
     <pre><code>npm install
 npm run build:renderer
-cargo build --release -p cc-switch-mini-server</code></pre>
+cargo build --release -p cc-switch-web-server</code></pre>
     <p>Then restart the server and reload this page.</p>
   </body>
 </html>"#;

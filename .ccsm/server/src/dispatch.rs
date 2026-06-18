@@ -53,11 +53,11 @@ pub async fn invoke(
     let elapsed = started.elapsed();
     match &result {
         Ok(_value) => log::debug!(
-            target: "cc_switch_mini.dispatch",
+            target: "cc_switch_web.dispatch",
             "{cmd_name} ok in {elapsed:?}"
         ),
         Err(err) => log::warn!(
-            target: "cc_switch_mini.dispatch",
+            target: "cc_switch_web.dispatch",
             "{cmd_name} failed in {elapsed:?}: {err}"
         ),
     }
@@ -75,7 +75,7 @@ pub async fn health(State(ctx): State<Arc<crate::AppContext>>) -> Json<Value> {
 
 pub async fn version() -> Json<Value> {
     Json(json!({
-        "name": "cc-switch-mini",
+        "name": "cc-switch-web",
         "version": env!("CARGO_PKG_VERSION"),
         "rust_version": env!("CARGO_PKG_RUST_VERSION"),
     }))

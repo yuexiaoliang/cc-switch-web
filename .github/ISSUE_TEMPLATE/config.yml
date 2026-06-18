@@ -1,18 +1,18 @@
 blank_issues_enabled: false
 contact_links:
   - name: "Security Vulnerabilities / 安全漏洞"
-    url: "https://github.com/yuexiaoliang/cc-switch-mini/security/advisories/new"
+    url: "https://github.com/yuexiaoliang/cc-switch-web/security/advisories/new"
     about: |
       Report security vulnerabilities through GitHub Security Advisories.
       请通过 GitHub 安全公告报告安全漏洞�?
   - name: "Discussions / 讨论�?
-    url: "https://github.com/yuexiaoliang/cc-switch-mini/discussions"
+    url: "https://github.com/yuexiaoliang/cc-switch-web/discussions"
     about: |
       General discussions and community help.
       一般讨论和社区帮助�?
   - name: "Upstream cc-switch / 上游�?url: "https://github.com/farion1231/cc-switch"
     about: |
       Issues that also affect the upstream Tauri desktop build should be
-      filed against the upstream repo, not here. cc-switch-mini only ships
+      filed against the upstream repo, not here. cc-switch-web only ships
       the headless Web variant.
       只有同时影应上游 Tauri 桌面版的问题才应退上游源版有关�?

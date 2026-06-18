@@ -1,5 +1,5 @@
 [package]
-name = "cc-switch-mini-server"
+name = "cc-switch-web-server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,14 +8,14 @@ authors.workspace = true
 repository.workspace = true
 description = "Headless Web derivative of cc-switch - runs on a Linux server and serves the upstream Web UI over HTTP."
 
-# Release binary is renamed to `cc-switch-mini` for nicer ergonomics; the
-# `cc-switch-mini-server` package name keeps the workspace target explicit.
+# Release binary is renamed to `cc-switch-web` for nicer ergonomics; the
+# `cc-switch-web-server` package name keeps the workspace target explicit.
 [[bin]]
-name = "cc-switch-mini"
+name = "cc-switch-web"
 path = "src/main.rs"
 
 [lib]
-name = "cc_switch_mini_server"
+name = "cc_switch_web_server"
 path = "src/lib.rs"
 
 # Reuse the upstream business logic. `cc_switch_lib` exposes everything we
