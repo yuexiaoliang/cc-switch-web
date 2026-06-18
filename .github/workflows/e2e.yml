@@ -99,12 +99,13 @@ jobs:
           # import path in a headless CI environment.
           mkdir -p "$DATA_DIR/.claude"
           echo '{"defaultModel":"claude-sonnet-4-6"}' > "$DATA_DIR/.claude/settings.json"
+          # Relocate upstream's home-dir-relative paths into the temp data dir.
+          export CC_SWITCH_TEST_HOME="$DATA_DIR"
           # Boot the server briefly to trigger the init path. We kill
           # it once the health endpoint answers, then bring it back up
           # for the rest of the e2e.
           ./target/release/cc-switch-web \
-            --host 127.0.0.1 --port 13000 \
-            --data-dir "$DATA_DIR" &
+            --host 127.0.0.1 --port 13000 &
           SERVER_PID=$!
           for i in $(seq 1 120); do
             if curl -fs http://127.0.0.1:13000/api/health >/dev/null 2>&1; then
@@ -248,9 +249,9 @@ jobs:
             sleep 1
           done
           # Bring it back up against the same data dir.
+          export CC_SWITCH_TEST_HOME="$DATA_DIR"
           ./target/release/cc-switch-web \
-            --host 127.0.0.1 --port 13000 \
-            --data-dir "$DATA_DIR" &
+            --host 127.0.0.1 --port 13000 &
           echo $! > server.pid
           for i in $(seq 1 120); do
             if curl -fs http://127.0.0.1:13000/api/health >/dev/null 2>&1; then
