@@ -7,7 +7,7 @@ members = [
 
 # Shared metadata; individual crates pin their own versions.
 [workspace.package]
-version = "3.16.3+ccs.2"
+version = "3.16.3+ccs.3"
 edition = "2021"
 rust-version = "1.85.0"
 license = "MIT"
