@@ -113,7 +113,14 @@ pub async fn get_codex_oauth_models(_args: Value) -> Result<Value> {
 pub async fn get_coding_plan_quota(args: Value) -> Result<Value> {
     let base_url: String = require_arg(&args, "baseUrl")?;
     let api_key: String = require_arg(&args, "apiKey")?;
-    let v = cc_switch_lib::get_coding_plan_quota(base_url, api_key)
+    let access_key_id: Option<String> = super::optional_arg(&args, "accessKeyId");
+    let secret_access_key: Option<String> = super::optional_arg(&args, "secretAccessKey");
+    let v = cc_switch_lib::get_coding_plan_quota(
+        base_url,
+        api_key,
+        access_key_id,
+        secret_access_key,
+    )
         .await
         .map_err(ApiError::from)?;
     Ok(serde_json::to_value(&v)?)
